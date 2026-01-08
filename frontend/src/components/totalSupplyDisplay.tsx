@@ -9,12 +9,18 @@ export default function TotalSupply() {
 
     const { data: supplyEth } = useReadContract({
         ...EthContractConfig,
-        functionName: "totalSupply",
+        functionName: "balanceOf",
+        args:[
+            import.meta.env.VITE_AMM_ADDRESS
+        ]
     })
 
     const { data: supplyUsdc } = useReadContract({
         ...UsdcContractConfig,
-        functionName: "totalSupply",
+        functionName: "balanceOf",
+        args:[
+            import.meta.env.VITE_AMM_ADDRESS
+        ]
     })
 
 
@@ -31,10 +37,10 @@ export default function TotalSupply() {
 
     return <div>
         <div>
-            ETH total supply: {ethSupply ? ethSupply.toString() : "Loading..."}
+            ETH in the Pool: {ethSupply ? ethSupply.toString() : "Loading..."}
         </div>
         <div>
-            USDC total supply: {usdcSupply ? usdcSupply.toString() : "Loading..."}
+            USDC in the pool: {usdcSupply ? usdcSupply.toString() : "Loading..."}
         </div>
     </div>
 }

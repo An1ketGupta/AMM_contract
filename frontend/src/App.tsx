@@ -6,6 +6,8 @@ import GetAirdrop from "./components/getAirdrop";
 import { Connection } from "./components/connection";
 import { WalletOptions } from "./components/walletOptions";
 import StakeMoney from "./components/stakeMoney";
+import ShowPoolBalance from "./components/showPoolBalance";
+import ShowUserBalance from "./components/showUserBalance";
 
 const queryclient = new QueryClient();
 
@@ -24,6 +26,8 @@ export default function App() {
           <TotalSupply/>
           <StakeMoney/>
           <GetAirdrop/>
+          <ShowUserBalance/>
+          <ShowPoolBalance/>
         </div>
       </WagmiProvider>
     </QueryClientProvider>
