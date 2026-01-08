@@ -24,12 +24,11 @@ export default function GetAirdrop() {
         functionName: '_requestAirdrop',
         args: [BigInt(1000000000000000000)],
       })
-      console.log(hash)
     }
 
 return <div className="flex gap-2">
         <button onClick={GetEthAirdrop} className="bg-gray-500 p-3 mr-4 rounded-lg">Get ETH Airdrop</button>
         <button onClick={GetUsdcAirdrop} className="bg-gray-500 p-3 mr-4 rounded-lg">Get USDC Airdrop</button>
-        <div>{hash && <div>Transaction Hash: {hash}</div>}</div>
+        <div>{hash && <div>Successfully Airdroped</div>}</div>
     </div>
 }

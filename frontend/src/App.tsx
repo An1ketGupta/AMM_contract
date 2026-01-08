@@ -16,10 +16,10 @@ function ConnectWallet() {
 }
 
 export default function App() {
-  return <div className="bg-black min-h-screen text-white">
+  return <div className="bg-black min-h-screen text-white min-w-screen">
     <QueryClientProvider client={queryclient}>
       <WagmiProvider config={config}>
-        <div className="pt-10 flex justify-center items-center gap-20">
+        <div className="pt-10 flex flex-col justify-center items-center gap-20">
           <ConnectWallet/>
           <TotalSupply/>
           <StakeMoney/>
