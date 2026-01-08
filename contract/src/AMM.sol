@@ -1,191 +1,234 @@
 // SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.19;
-import {
-    Math
-} from "../lib/openzeppelin-contracts/contracts/utils/math/Math.sol";
 
-import {
-    ERC20
-} from "../lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
+import { Math } from "../lib/openzeppelin-contracts/contracts/utils/math/Math.sol";
+import { ERC20 } from "../lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
+import { IERC20 } from "../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import { ReentrancyGuard } from "../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-import {
-    IERC20
-} from "../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-
-import {
-    ReentrancyGuard
-} from "../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
-
-interface EthContract is IERC20 {
-}
-
-interface UsdcContract is IERC20 {
-}
+interface ETHContract is IERC20 {}
+interface USDCContract is IERC20 {}
 
 contract AMMContract is ERC20, ReentrancyGuard {
+
     uint private reserveEth;
-    uint private reserveUSDC;
+    uint private reserveUsdc;
 
     uint constant private MINIMUM_LIQUIDITY = 1000;
-    EthContract public ethToken;
-    UsdcContract public usdcToken;
 
-    constructor(
-        address ethAddress,
-        address usdcAddress
-    ) ERC20("AniketCoin", "ANC") {
+    ETHContract public ethToken;
+    USDCContract public usdcToken;
+
+    event LiquidityAdded(
+        address indexed provider,
+        uint ethAmount,
+        uint usdcAmount,
+        uint sharesMinted
+    );
+
+    event LiquidityRemoved(
+        address indexed provider,
+        uint ethAmount,
+        uint usdcAmount,
+        uint sharesBurned
+    );
+
+    event Swap(
+        address indexed trader,
+        address indexed tokenIn,
+        address indexed tokenOut,
+        uint amountIn,
+        uint amountOut
+    );
+
+    event Sync(uint reserveEth, uint reserveUsdc);
+
+    constructor(address ethAddress, address usdcAddress)
+        ERC20("AniketCoin", "ANC")
+    {
         require(ethAddress != address(0), "Invalid Eth address");
         require(usdcAddress != address(0), "Invalid USDC address");
-        ethToken = EthContract(ethAddress);
-        usdcToken = UsdcContract(usdcAddress);
-        reserveEth = 0;
-        reserveUSDC = 0;
-    }
 
+        ethToken = ETHContract(ethAddress);
+        usdcToken = USDCContract(usdcAddress);
+    }
+    
     function getActualTokenAmount(
         uint ethAmount,
         uint usdcAmount
-    ) internal view returns (uint, uint) {
-        if (reserveEth == 0 || reserveUSDC == 0) {
+    ) public view returns (uint, uint) {
+        if (reserveEth == 0 || reserveUsdc == 0) {
             return (ethAmount, usdcAmount);
+        }
+
+        uint usdcForEth = (reserveUsdc * ethAmount) / reserveEth;
+        uint ethForUsdc = (reserveEth * usdcAmount) / reserveUsdc;
+
+        if (usdcForEth <= usdcAmount) {
+            return (ethAmount, usdcForEth);
         } else {
-            uint usdcForEth = (reserveUSDC * ethAmount) / reserveEth;
-            uint ethForUsdc = (reserveEth * usdcAmount) / reserveUSDC;
-            if (usdcForEth <= usdcAmount) {
-                return (ethAmount, usdcForEth);
-            } else {
-                return (ethForUsdc, usdcAmount);
-            }
+            return (ethForUsdc, usdcAmount);
         }
     }
 
     function calculateShare(
-        uint eth_amount,
-        uint usdc_amount
+        uint ethAmount,
+        uint usdcAmount
     ) public view returns (uint) {
-        
+
         if (totalSupply() == 0) {
-            
-            uint shares = Math.sqrt(eth_amount * usdc_amount);
-            require(shares > MINIMUM_LIQUIDITY, "Insuffient tokens");
-            return shares-MINIMUM_LIQUIDITY;
+            uint shares = Math.sqrt(ethAmount * usdcAmount);
+            require(shares > MINIMUM_LIQUIDITY, "Insufficient liquidity");
+            return shares - MINIMUM_LIQUIDITY;
+        }
 
-        } else {
+        uint sharesEth = (ethAmount * totalSupply()) / reserveEth;
+        uint sharesUsdc = (usdcAmount * totalSupply()) / reserveUsdc;
 
-            uint shares = Math.min(
-                (eth_amount * totalSupply()) / reserveEth,
-                (usdc_amount * totalSupply()) / reserveUSDC
-            );
-            return shares;
+        return Math.min(sharesEth, sharesUsdc);
+    }
 
+    function GetUsdcAmountRequired(uint ethAmount) view public returns (uint){
+        require(ethAmount > 0 , "Provide some tokens");
+        if(reserveEth == 0 && reserveUsdc == 0){
+            return 0;
+        }
+        else{
+            uint usdcAmountRequired = ( ethAmount * reserveUsdc )/reserveEth;
+            return usdcAmountRequired;
         }
     }
 
-    function _sync() internal{
-        reserveEth = ethToken.balanceOf(address(this));
-        reserveUSDC = usdcToken.balanceOf(address(this));
+    function GetEthAmountRequired(uint usdcAmount) view public returns (uint){
+        require(usdcAmount > 0 , "Provide some tokens");
+        if(reserveEth == 0 && reserveUsdc == 0){
+            return 0;
+        }
+        else{
+            uint ethAmountRequired = ( usdcAmount * reserveEth )/reserveUsdc;
+            return ethAmountRequired;
+        }
     }
-    
+
+    function _sync() internal {
+        reserveEth = ethToken.balanceOf(address(this));
+        reserveUsdc = usdcToken.balanceOf(address(this));
+        emit Sync(reserveEth, reserveUsdc);
+    }
+
     function stake(
-        uint amount_Eth,
-        uint amount_USDC,
+        uint amountEth,
+        uint amountUsdc,
         uint minshares
     ) public nonReentrant {
 
-        require(amount_Eth > 0 && amount_USDC > 0, "Cannot stake zero tokens");
-        uint neededETH;
-        uint neededUSDC;
-        
-        uint balanceBefore = ethToken.balanceOf(address(this));
-        bool successEth = ethToken.transferFrom(msg.sender, address(this), amount_Eth);
-        require(successEth, "Didnt receive Eth tokens");
-        uint receivedEth = ethToken.balanceOf(address(this)) - balanceBefore;
+        require(amountEth > 0 && amountUsdc > 0, "Cannot stake zero tokens");
 
-        balanceBefore = usdcToken.balanceOf(address(this));
-        bool successUsdc = usdcToken.transferFrom(msg.sender, address(this), amount_USDC);
-        require(successUsdc, "Didnt receive USDC tokens");
-        uint receivedUsdc = usdcToken.balanceOf(address(this)) - balanceBefore;
-
-        (neededETH, neededUSDC) = getActualTokenAmount(receivedEth, receivedUsdc);
-        uint shares = calculateShare(neededETH, neededUSDC); 
-
-        require(shares >= minshares, "Minimum slippage violation.");
-        
-        if(totalSupply() == 0){
-            _mint(address(1), MINIMUM_LIQUIDITY);
-        }
-        
-        if (receivedEth > neededETH) {
-            ethToken.transfer(msg.sender, receivedEth - neededETH);
-        }
-        if (receivedUsdc > neededUSDC) {
-            usdcToken.transfer(msg.sender, receivedUsdc - neededUSDC);
-        }
-        
-        _mint(msg.sender, shares);
-        _sync();
-    }
-
-    function swapEthtoUsdc(
-        uint ethAmount,
-        uint minUSDC
-        ) public nonReentrant{
-            
-        require(ethAmount > 0 , "Can't swap 0 tokens");
-        require(reserveEth > 0 && reserveUSDC > 0 , "No liquidity in the pool");
         uint ethBefore = ethToken.balanceOf(address(this));
-        bool success = ethToken.transferFrom(msg.sender, address(this), ethAmount);
-        require(success , "Didn't receive eth tokens");
+        ethToken.transferFrom(msg.sender, address(this), amountEth);
         uint receivedEth = ethToken.balanceOf(address(this)) - ethBefore;
 
-        uint netEth = (receivedEth * 997)/1000;
-        uint USDCtokens = (reserveUSDC * netEth)/(reserveEth + netEth);
-        require(USDCtokens >= minUSDC , "Minimum slippage violation.");
-
-        usdcToken.transfer(msg.sender, USDCtokens);
-        _sync();
-    }
-    
-    function swapUsdcToEth(
-        uint usdcAmount,
-        uint minEth
-        ) public nonReentrant{
-            
-        require(usdcAmount > 0 , "Can't swap 0 tokens");
-        require(reserveEth > 0 && reserveUSDC > 0 , "No liquidity in the pool");
         uint usdcBefore = usdcToken.balanceOf(address(this));
-        bool success = usdcToken.transferFrom(msg.sender, address(this), usdcAmount);
-        require(success , "Didn't receive eth tokens");
+        usdcToken.transferFrom(msg.sender, address(this), amountUsdc);
         uint receivedUsdc = usdcToken.balanceOf(address(this)) - usdcBefore;
 
-        uint netUsdc = (receivedUsdc * 997)/1000;
-        uint ETHTokens = (reserveEth * netUsdc)/(reserveUSDC + netUsdc);
-        require(ETHTokens >= minEth , "Minimum slippage violation.");
+        (uint neededEth, uint neededUsdc) =
+        getActualTokenAmount(receivedEth, receivedUsdc);
 
-        ethToken.transfer(msg.sender, ETHTokens);
+        uint shares = calculateShare(neededEth, neededUsdc);
+        require(shares >= minshares, "Minimum slippage violation");
+
+        if (totalSupply() == 0) {
+            _mint(address(1), MINIMUM_LIQUIDITY);
+        }
+
+        if (receivedEth > neededEth) {
+            ethToken.transfer(msg.sender, receivedEth - neededEth);
+        }
+        if (receivedUsdc > neededUsdc) {
+            usdcToken.transfer(msg.sender, receivedUsdc - neededUsdc);
+        }
+
+        _mint(msg.sender, shares);
         _sync();
+
+        emit LiquidityAdded(msg.sender, neededEth, neededUsdc, shares);
     }
 
-    function removeLiquidity(
-    uint shares
-    ) public nonReentrant {
-        require(shares > 0 , "No shares provided");
+    function removeLiquidity(uint shares) public nonReentrant {
+        require(shares > 0, "No shares provided");
 
         _sync();
 
-        require(reserveEth > 0 && reserveUSDC > 0, "Pool is empty");
         uint ethAmount = (shares * reserveEth) / totalSupply();
-        uint usdcAmount = (shares * reserveUSDC) / totalSupply();
-        require(totalSupply() - shares >= MINIMUM_LIQUIDITY,"Cannot remove minimum liquidity");
+        uint usdcAmount = (shares * reserveUsdc) / totalSupply();
+
+        require(
+            totalSupply() - shares >= MINIMUM_LIQUIDITY,
+            "Cannot remove minimum liquidity"
+        );
+
         _burn(msg.sender, shares);
 
-        reserveEth = reserveEth - ethAmount;
-        reserveUSDC = reserveUSDC - usdcAmount;
+        reserveEth -= ethAmount;
+        reserveUsdc -= usdcAmount;
 
-        bool success1 = ethToken.transfer(msg.sender, ethAmount);
-        bool success2 = usdcToken.transfer(msg.sender, usdcAmount);
+        ethToken.transfer(msg.sender, ethAmount);
+        usdcToken.transfer(msg.sender, usdcAmount);
 
-        require(success1, "ETH transfer failed");
-        require(success2, "USDC transfer failed");
+        emit LiquidityRemoved(msg.sender, ethAmount, usdcAmount, shares);
+        emit Sync(reserveEth, reserveUsdc);
+    }
+
+    function swapEthtoUsdc(uint ethAmount, uint minUsdc) public nonReentrant {
+        require(ethAmount > 0, "Can't swap 0");
+        require(reserveEth > 0 && reserveUsdc > 0, "No liquidity");
+
+        uint beforeEth = ethToken.balanceOf(address(this));
+        ethToken.transferFrom(msg.sender, address(this), ethAmount);
+        uint receivedEth = ethToken.balanceOf(address(this)) - beforeEth;
+
+        uint netEth = (receivedEth * 997) / 1000;
+        uint usdcOut =
+            (reserveUsdc * netEth) / (reserveEth + netEth);
+
+        require(usdcOut >= minUsdc, "Slippage");
+
+        usdcToken.transfer(msg.sender, usdcOut);
+        _sync();
+
+        emit Swap(
+            msg.sender,
+            address(ethToken),
+            address(usdcToken),
+            receivedEth,
+            usdcOut
+        );
+    }
+
+    function swapUsdcToEth(uint usdcAmount, uint minEth) public nonReentrant {
+        require(usdcAmount > 0, "Can't swap 0");
+        require(reserveEth > 0 && reserveUsdc > 0, "No liquidity");
+
+        uint beforeUsdc = usdcToken.balanceOf(address(this));
+        usdcToken.transferFrom(msg.sender, address(this), usdcAmount);
+        uint receivedUsdc = usdcToken.balanceOf(address(this)) - beforeUsdc;
+
+        uint netUsdc = (receivedUsdc * 997) / 1000;
+        uint ethOut =
+            (reserveEth * netUsdc) / (reserveUsdc + netUsdc);
+
+        require(ethOut >= minEth, "Slippage");
+
+        ethToken.transfer(msg.sender, ethOut);
+        _sync();
+
+        emit Swap(
+            msg.sender,
+            address(usdcToken),
+            address(ethToken),
+            receivedUsdc,
+            ethOut
+        );
     }
 }

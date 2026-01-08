@@ -55,9 +55,6 @@ abstract contract GovernorStorage is Governor {
     function queue(uint256 proposalId) public virtual {
         // here, using storage is more efficient than memory
         ProposalDetails storage details = _proposalDetails[proposalId];
-        if (details.descriptionHash == 0) {
-            revert GovernorNonexistentProposal(proposalId);
-        }
         queue(details.targets, details.values, details.calldatas, details.descriptionHash);
     }
 
@@ -67,9 +64,6 @@ abstract contract GovernorStorage is Governor {
     function execute(uint256 proposalId) public payable virtual {
         // here, using storage is more efficient than memory
         ProposalDetails storage details = _proposalDetails[proposalId];
-        if (details.descriptionHash == 0) {
-            revert GovernorNonexistentProposal(proposalId);
-        }
         execute(details.targets, details.values, details.calldatas, details.descriptionHash);
     }
 
@@ -79,9 +73,6 @@ abstract contract GovernorStorage is Governor {
     function cancel(uint256 proposalId) public virtual {
         // here, using storage is more efficient than memory
         ProposalDetails storage details = _proposalDetails[proposalId];
-        if (details.descriptionHash == 0) {
-            revert GovernorNonexistentProposal(proposalId);
-        }
         cancel(details.targets, details.values, details.calldatas, details.descriptionHash);
     }
 

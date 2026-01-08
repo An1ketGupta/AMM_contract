@@ -17,35 +17,6 @@ import {Memory} from "./Memory.sol";
  *
  * * https://github.com/succinctlabs/optimism-bedrock-contracts/blob/main/rlp/RLPWriter.sol
  * * https://github.com/succinctlabs/optimism-bedrock-contracts/blob/main/rlp/RLPReader.sol
- *
- * == Canonical vs Non-Canonical Encodings
- *
- * According to the Ethereum Yellow Paper, a "canonical" RLP encoding is the unique, minimal
- * representation of a value. For scalar values (integers), this means:
- *
- * * No leading zero bytes (e.g., `0x0123` should be encoded as 2 bytes, not `0x000123` as 3 bytes)
- * * Single bytes less than 0x80 must be encoded directly without a prefix wrapper
- * * Zero is represented as an empty byte array (prefix `0x80`)
- *
- * A "non-canonical" encoding represents the same value but doesn't follow these minimality rules.
- * For example, encoding the integer 1234 (0x04d2) with a leading zero as `0x830004d2` instead
- * of the canonical `0x8204d2`.
- *
- * [IMPORTANT]
- * ====
- * This implementation takes a permissive approach to decoding, accepting some non-canonical
- * encodings (e.g., scalar values with leading zero bytes) that would be rejected by
- * strict implementations like go-ethereum. This design choice prioritizes compatibility
- * with diverse RLP encoders in the ecosystem over strict adherence to the Yellow Paper
- * specification's canonicalization requirements.
- *
- * Users should be aware that:
- *
- * * Multiple different RLP encodings may decode to the same value (non-injective)
- * * Encoding followed by decoding is guaranteed to work correctly
- * * External RLP data from untrusted sources may have non-canonical encodings
- * * Improperly wrapped single bytes (< 0x80) are still rejected as invalid
- * ====
  */
 library RLP {
     using Accumulators for *;
@@ -150,12 +121,7 @@ library RLP {
         }
     }
 
-    /**
-     * @dev Encode an address as an RLP item of fixed size (20 bytes).
-     *
-     * The address is encoded with its leading zeros (if it has any). If someone wants to encode the address as a scalar,
-     * they can cast it to an uint256 and then call the corresponding {encode} function.
-     */
+    /// @dev Encode an address as RLP.
     function encode(address input) internal pure returns (bytes memory result) {
         assembly ("memory-safe") {
             result := mload(0x40)
@@ -165,16 +131,12 @@ library RLP {
         }
     }
 
-    /**
-     * @dev Encode an uint256 as an RLP scalar.
-     *
-     * Unlike {encode-bytes32-}, this function uses scalar encoding that removes the prefix zeros.
-     */
+    /// @dev Encode a uint256 as RLP.
     function encode(uint256 input) internal pure returns (bytes memory result) {
         if (input < SHORT_OFFSET) {
             assembly ("memory-safe") {
                 result := mload(0x40)
-                mstore(result, 0x01) // length of the encoded data: 1 byte
+                mstore(result, 1) // length of the encoded data: 1 byte
                 mstore8(add(result, 0x20), or(input, mul(0x80, iszero(input)))) // input (zero is encoded as 0x80)
                 mstore(0x40, add(result, 0x21)) // reserve memory
             }
@@ -190,19 +152,9 @@ library RLP {
         }
     }
 
-    /**
-     * @dev Encode a bytes32 as an RLP item of fixed size (32 bytes).
-     *
-     * Unlike {encode-uint256-}, this function uses array encoding that preserves the prefix zeros.
-     */
-    function encode(bytes32 input) internal pure returns (bytes memory result) {
-        assembly ("memory-safe") {
-            result := mload(0x40)
-            mstore(result, 0x21) // length of the encoded data: 1 (prefix) + 0x20
-            mstore8(add(result, 0x20), 0xa0) // prefix: SHORT_OFFSET + 0x20
-            mstore(add(result, 0x21), input)
-            mstore(0x40, add(result, 0x41)) // reserve memory
-        }
+    /// @dev Encode a bytes32 as RLP. Type alias for {encode-uint256-}.
+    function encode(bytes32 input) internal pure returns (bytes memory) {
+        return encode(uint256(input));
     }
 
     /// @dev Encode a bytes buffer as RLP.
@@ -215,17 +167,13 @@ library RLP {
         return encode(bytes(input));
     }
 
-    /**
-     * @dev Encode an array of bytes as RLP.
-     * This function expects an array of already encoded bytes, not raw bytes.
-     * Users should call {encode} on each element of the array before calling it.
-     */
+    /// @dev Encode an array of bytes as RLP.
     function encode(bytes[] memory input) internal pure returns (bytes memory) {
         return _encode(input.concat(), LONG_OFFSET);
     }
 
     /// @dev Encode an encoder (list of bytes) as RLP
-    function encode(Encoder memory self) internal pure returns (bytes memory) {
+    function encode(Encoder memory self) internal pure returns (bytes memory result) {
         return _encode(self.acc.flatten(), LONG_OFFSET);
     }
 
@@ -260,55 +208,19 @@ library RLP {
      *                               DECODING - READ FROM AN RLP ENCODED MEMORY SLICE                               *
      ****************************************************************************************************************/
 
-    /**
-     * @dev Decode an RLP encoded bool. See {encode-bool}
-     *
-     * NOTE: This function treats any non-zero value as `true`, which is more permissive
-     * than some implementations (e.g., go-ethereum only accepts `0x00` for false and `0x01`
-     * for true). For example, `0x02`, `0x03`, etc. will all decode as `true`.
-     */
+    /// @dev Decode an RLP encoded bool. See {encode-bool}
     function readBool(Memory.Slice item) internal pure returns (bool) {
         return readUint256(item) != 0;
     }
 
-    /**
-     * @dev Decode an RLP encoded address. See {encode-address}
-     *
-     * [NOTE]
-     * ====
-     * This function accepts both single-byte encodings (for values 0-127, including
-     * precompile addresses like 0x01) and the standard 21-byte encoding with the `0x94` prefix.
-     * For example, `0x01` decodes to `0x0000000000000000000000000000000000000001`.
-     *
-     * Additionally, like {readUint256}, this function accepts non-canonical encodings with
-     * leading zeros. For instance, both `0x01` and `0x940000000000000000000000000000000000000001`
-     * decode to the same address.
-     * ====
-     */
+    /// @dev Decode an RLP encoded address. See {encode-address}
     function readAddress(Memory.Slice item) internal pure returns (address) {
         uint256 length = item.length();
         require(length == 1 || length == 21, RLPInvalidEncoding());
         return address(uint160(readUint256(item)));
     }
 
-    /**
-     * @dev Decode an RLP encoded uint256. See {encode-uint256}
-     *
-     * [NOTE]
-     * ====
-     * This function accepts non-canonical encodings with leading zero bytes for multi-byte values,
-     * which differs from the Ethereum Yellow Paper specification and some reference
-     * implementations like go-ethereum. For example, both `0x88ab54a98ceb1f0ad2` and
-     * `0x8900ab54a98ceb1f0ad2` will decode to the same uint256 value (12345678901234567890).
-     *
-     * However, single bytes less than 0x80 must NOT be wrapped with a prefix. For example,
-     * `0x8100` is invalid (should be `0x00`), but `0x820000` is valid (two zero bytes).
-     *
-     * This permissive behavior is intentional for compatibility with various RLP encoders
-     * in the ecosystem, but users should be aware that multiple RLP encodings may map
-     * to the same decoded value (non-injective decoding).
-     * ====
-     */
+    /// @dev Decode an RLP encoded uint256. See {encode-uint256}
     function readUint256(Memory.Slice item) internal pure returns (uint256) {
         uint256 length = item.length();
         require(length <= 33, RLPInvalidEncoding());
@@ -319,14 +231,7 @@ library RLP {
         return itemLength == 0 ? 0 : uint256(item.load(itemOffset)) >> (256 - 8 * itemLength);
     }
 
-    /**
-     * @dev Decode an RLP encoded bytes32. See {encode-bytes32}
-     *
-     * NOTE: Since this function delegates to {readUint256}, it inherits the non-canonical
-     * encoding acceptance behavior for multi-byte values. Multiple RLP encodings with different
-     * leading zero bytes may decode to the same bytes32 value, but single bytes < 0x80 must
-     * not be wrapped with a prefix (e.g., `0x820000` is valid, but `0x8100` is not).
-     */
+    /// @dev Decode an RLP encoded bytes32. See {encode-bytes32}
     function readBytes32(Memory.Slice item) internal pure returns (bytes32) {
         return bytes32(readUint256(item));
     }
@@ -336,7 +241,7 @@ library RLP {
         (uint256 offset, uint256 length, ItemType itemType) = _decodeLength(item);
         require(itemType == ItemType.Data, RLPInvalidEncoding());
 
-        // Length is checked by {slice}
+        // Length is checked by {toBytes}
         return item.slice(offset, length).toBytes();
     }
 
@@ -421,7 +326,9 @@ library RLP {
      * @dev Decodes an RLP `item`'s `length and type from its prefix.
      * Returns the offset, length, and type of the RLP item based on the encoding rules.
      */
-    function _decodeLength(Memory.Slice item) private pure returns (uint256, uint256, ItemType) {
+    function _decodeLength(
+        Memory.Slice item
+    ) private pure returns (uint256 _offset, uint256 _length, ItemType _itemtype) {
         uint256 itemLength = item.length();
 
         require(itemLength != 0, RLPInvalidEncoding());
@@ -444,10 +351,9 @@ library RLP {
                 // Case: Long string (>55 bytes)
                 uint256 lengthLength = prefix - SHORT_OFFSET - SHORT_THRESHOLD;
 
-                bytes32 lenChunk = item.load(1);
-                require(itemLength > lengthLength && bytes1(lenChunk) != 0x00, RLPInvalidEncoding());
+                require(itemLength > lengthLength && bytes1(item.load(0)) != 0x00, RLPInvalidEncoding());
 
-                uint256 len = uint256(lenChunk) >> (256 - 8 * lengthLength);
+                uint256 len = uint256(item.load(1)) >> (256 - 8 * lengthLength);
                 require(len > SHORT_THRESHOLD && itemLength > lengthLength + len, RLPInvalidEncoding());
 
                 return (lengthLength + 1, len, ItemType.Data);
@@ -463,10 +369,10 @@ library RLP {
                 // Case: Long list
                 uint256 lengthLength = prefix - LONG_OFFSET - SHORT_THRESHOLD;
 
-                bytes32 lenChunk = item.load(1);
-                require(itemLength > lengthLength && bytes1(lenChunk) != 0x00, RLPInvalidEncoding());
+                require(itemLength > lengthLength, RLPInvalidEncoding());
+                require(bytes1(item.load(0)) != 0x00);
 
-                uint256 len = uint256(lenChunk) >> (256 - 8 * lengthLength);
+                uint256 len = uint256(item.load(1)) >> (256 - 8 * lengthLength);
                 require(len > SHORT_THRESHOLD && itemLength > lengthLength + len, RLPInvalidEncoding());
 
                 return (lengthLength + 1, len, ItemType.List);
