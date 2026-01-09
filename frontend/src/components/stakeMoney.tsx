@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import { AmmContractConfig } from "../configs/AMMContractConfig";
 import { useAccount, useReadContract, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
-import { formatEther, parseEther } from "viem";
+import { decodeErrorResult, erc20Abi, formatEther, parseEther } from "viem";
 import { EthContractConfig } from "../configs/EthContractConfig";
 import { UsdcContractConfig } from "../configs/USDCContractConfig";
 
@@ -11,9 +11,10 @@ export default function StakeMoney() {
     const [usdcAmount, setUsdcAmount] = useState<string>("")
     const [activeTab, setActiveTab] = useState<"eth" | "usdc" | "">("");
     const { address, isConnected } = useAccount();
-    const [ isProcessing , setProccessing ] = useState(false)
-    const { data: hash, writeContract, isPending: isWalletLoading, error: walletError } = useWriteContract()
-    const { isLoading: isConfirming, isSuccess: isConfirmed, error: confirmError } = useWaitForTransactionReceipt({
+    const [isProcessing, setProccessing] = useState(false)
+    const [ currentTransaction , setCurrentTransaction ] = useState<"ethapprove" | "usdcapprove"| "stake" | "">("")
+    const { data: hash, writeContract, error: walletError } = useWriteContract()
+    const { data: receipt, isSuccess: isConfirmed, error: confirmError } = useWaitForTransactionReceipt({
         hash
     })
 
@@ -105,23 +106,26 @@ export default function StakeMoney() {
     })
 
     useEffect(()=>{
-        if(isConfirmed){
+        if(receipt?.status == "success"){
+            alert(currentTransaction)
             setProccessing(false)
-            console.log("Transaction mined.")
+            setCurrentTransaction("")
             refetchEthAllowance();
             refetchUsdcAllowance();
         }
-        if(walletError || confirmError){
+        else if(receipt?.status == 'reverted'){
+            alert(currentTransaction)
+            setCurrentTransaction("")
             setProccessing(false)
         }
-    },[isConfirmed])
+    },[receipt])
 
     function ButtonHandler() {
-        if(!isProcessing){
+        if (!isProcessing) {
             setProccessing(true)
             // @ts-ignore
             if (formatEther(userEthAllowance) < (Number(ethAmount))) {
-                console.log("ETH allowance: ", userEthAllowance)
+                setCurrentTransaction("ethapprove")
                 // @ts-ignore
                 writeContract({
                     ...EthContractConfig,
@@ -131,11 +135,15 @@ export default function StakeMoney() {
                         import.meta.env.VITE_AMM_ADDRESS,
                         parseEther(Number(ethAmount).toString())
                     ]
+                },{ onError: (e: any) => {
+                    setCurrentTransaction("")
+                    alert("You cancelled the transaction")
+                }
                 })
             }
             // @ts-ignore
             else if (formatEther(userUsdcAllowance) < (Number(usdcAmount))) {
-                console.log("USDC allowance: ", userUsdcAllowance)
+                setCurrentTransaction("usdcapprove")
                 // @ts-ignore
                 writeContract({
                     ...UsdcContractConfig,
@@ -145,9 +153,15 @@ export default function StakeMoney() {
                         import.meta.env.VITE_AMM_ADDRESS,
                         parseEther(Number(usdcAmount).toString())
                     ]
+                }, {
+                    onError: (e: any) => {
+                        setCurrentTransaction("")
+                        alert("You cancelled the transaction")
+                    }
                 })
             }
-            else{
+            else {
+                setCurrentTransaction("stake")
                 writeContract({
                     ...AmmContractConfig,
                     functionName: "stake",
@@ -156,6 +170,11 @@ export default function StakeMoney() {
                         parseEther(usdcAmount),
                         0n
                     ]
+                }, {
+                    onError: (e: any) => {
+                        alert("You cancelled the transaction")
+                        setCurrentTransaction("")
+                    }
                 })
             }
         }

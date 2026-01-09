@@ -21,8 +21,8 @@ contract Deploy is Script{
 
         vm.stopBroadcast();
 
-        console.log("ETH Token Address:", address(eth));
-        console.log("USDC Token Address:", address(usdc));
-        console.log("AMM Contract Address:", address(amm));
+        console.log("VITE_ETH_ADDRESS=", address(eth));
+        console.log("VITE_USDC_ADDRESS=", address(usdc));
+        console.log("VITE_AMM_ADDRESS=", address(amm));
     }
 }

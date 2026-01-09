@@ -1,13 +1,12 @@
 import { useConnection, WagmiProvider } from "wagmi";
 import { config } from "./config";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import TotalSupply from "./components/totalSupplyDisplay";
+import PoolSupply from "./components/poolSupply";
 import GetAirdrop from "./components/getAirdrop";
 import { Connection } from "./components/connection";
 import { WalletOptions } from "./components/walletOptions";
 import StakeMoney from "./components/stakeMoney";
-import ShowPoolBalance from "./components/showPoolBalance";
-import ShowUserBalance from "./components/showUserBalance";
+import TransferTokens from "./components/transferTokens";
 
 const queryclient = new QueryClient();
 
@@ -23,11 +22,10 @@ export default function App() {
       <WagmiProvider config={config}>
         <div className="pt-10 flex flex-col justify-center items-center gap-20">
           <ConnectWallet/>
-          <TotalSupply/>
+          <PoolSupply/>
           <StakeMoney/>
+          <TransferTokens/>
           <GetAirdrop/>
-          <ShowUserBalance/>
-          <ShowPoolBalance/>
         </div>
       </WagmiProvider>
     </QueryClientProvider>

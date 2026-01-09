@@ -3,7 +3,7 @@ import { EthContractConfig } from "../configs/EthContractConfig"
 import { useEffect, useState } from "react"
 import { UsdcContractConfig } from "../configs/USDCContractConfig";
 
-export default function TotalSupply() {
+export default function PoolSupply() {
     const [ethSupply, setEthSupply] = useState(0);
     const [usdcSupply, setUsdcSupply] = useState(0);
 
