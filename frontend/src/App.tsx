@@ -83,7 +83,6 @@ function MainContent() {
           </div>
         </div>
 
-        {/* Right Side */}
         <div className="flex items-center gap-3">
           <div className="hidden sm:flex items-center gap-2 bg-gray-900/80 rounded-xl px-3 py-2 border border-gray-700/50">
             <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
