@@ -5,14 +5,14 @@ import {
     ERC20
 } from "../lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 
-contract EthContract is ERC20 {
+contract NcyContract is ERC20 {
 
     uint private constant PRECISION = 1e18;
 
     event InitialMint(address indexed to, uint amount);
     event AirdropRequested(address indexed to, uint amount);
 
-    constructor() ERC20("Ethereum", "ETH") {
+    constructor() ERC20("Ncy", "NCY") {
         address sender = msg.sender;
         uint amount = 100000000 * PRECISION;
 

@@ -3,12 +3,12 @@ export const AMM_ABI =  [
             "type": "constructor",
             "inputs": [
                 {
-                    "name": "ethAddress",
+                    "name": "ncyAddress",
                     "type": "address",
                     "internalType": "address"
                 },
                 {
-                    "name": "usdcAddress",
+                    "name": "guluAddress",
                     "type": "address",
                     "internalType": "address"
                 }
@@ -17,10 +17,10 @@ export const AMM_ABI =  [
         },
         {
             "type": "function",
-            "name": "GetEthAmountForUsdc",
+            "name": "GetGuluAmountForNcy",
             "inputs": [
                 {
-                    "name": "receivedUsdc",
+                    "name": "receivedNcy",
                     "type": "uint256",
                     "internalType": "uint256"
                 }
@@ -36,10 +36,10 @@ export const AMM_ABI =  [
         },
         {
             "type": "function",
-            "name": "GetEthAmountRequired",
+            "name": "GetGuluAmountRequired",
             "inputs": [
                 {
-                    "name": "usdcAmount",
+                    "name": "ncyAmount",
                     "type": "uint256",
                     "internalType": "uint256"
                 }
@@ -55,10 +55,10 @@ export const AMM_ABI =  [
         },
         {
             "type": "function",
-            "name": "GetUsdcAmountForEth",
+            "name": "GetNcyAmountForGulu",
             "inputs": [
                 {
-                    "name": "receivedEth",
+                    "name": "receivedGulu",
                     "type": "uint256",
                     "internalType": "uint256"
                 }
@@ -74,10 +74,10 @@ export const AMM_ABI =  [
         },
         {
             "type": "function",
-            "name": "GetUsdcAmountRequired",
+            "name": "GetNcyAmountRequired",
             "inputs": [
                 {
-                    "name": "ethAmount",
+                    "name": "guluAmount",
                     "type": "uint256",
                     "internalType": "uint256"
                 }
@@ -163,12 +163,12 @@ export const AMM_ABI =  [
             "name": "calculateShare",
             "inputs": [
                 {
-                    "name": "ethAmount",
+                    "name": "ncyAmount",
                     "type": "uint256",
                     "internalType": "uint256"
                 },
                 {
-                    "name": "usdcAmount",
+                    "name": "guluAmount",
                     "type": "uint256",
                     "internalType": "uint256"
                 }
@@ -197,42 +197,42 @@ export const AMM_ABI =  [
         },
         {
             "type": "function",
-            "name": "ethToken",
-            "inputs": [],
+            "name": "getActualTokenAmount",
+            "inputs": [
+                {
+                    "name": "ncyAmount",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "guluAmount",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                }
+            ],
             "outputs": [
                 {
                     "name": "",
-                    "type": "address",
-                    "internalType": "contract ETHContract"
+                    "type": "uint256",
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "",
+                    "type": "uint256",
+                    "internalType": "uint256"
                 }
             ],
             "stateMutability": "view"
         },
         {
             "type": "function",
-            "name": "getActualTokenAmount",
-            "inputs": [
-                {
-                    "name": "ethAmount",
-                    "type": "uint256",
-                    "internalType": "uint256"
-                },
-                {
-                    "name": "usdcAmount",
-                    "type": "uint256",
-                    "internalType": "uint256"
-                }
-            ],
+            "name": "guluToken",
+            "inputs": [],
             "outputs": [
                 {
                     "name": "",
-                    "type": "uint256",
-                    "internalType": "uint256"
-                },
-                {
-                    "name": "",
-                    "type": "uint256",
-                    "internalType": "uint256"
+                    "type": "address",
+                    "internalType": "contract GULUContract"
                 }
             ],
             "stateMutability": "view"
@@ -246,6 +246,19 @@ export const AMM_ABI =  [
                     "name": "",
                     "type": "string",
                     "internalType": "string"
+                }
+            ],
+            "stateMutability": "view"
+        },
+        {
+            "type": "function",
+            "name": "ncyToken",
+            "inputs": [],
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "address",
+                    "internalType": "contract NCYContract"
                 }
             ],
             "stateMutability": "view"
@@ -268,12 +281,12 @@ export const AMM_ABI =  [
             "name": "stake",
             "inputs": [
                 {
-                    "name": "amountEth",
+                    "name": "amountNcy",
                     "type": "uint256",
                     "internalType": "uint256"
                 },
                 {
-                    "name": "amountUsdc",
+                    "name": "amountGulu",
                     "type": "uint256",
                     "internalType": "uint256"
                 },
@@ -288,15 +301,15 @@ export const AMM_ABI =  [
         },
         {
             "type": "function",
-            "name": "swapEthtoUsdc",
+            "name": "swapGuluToNcy",
             "inputs": [
                 {
-                    "name": "ethAmount",
+                    "name": "guluAmount",
                     "type": "uint256",
                     "internalType": "uint256"
                 },
                 {
-                    "name": "minUsdc",
+                    "name": "minNcy",
                     "type": "uint256",
                     "internalType": "uint256"
                 }
@@ -306,15 +319,15 @@ export const AMM_ABI =  [
         },
         {
             "type": "function",
-            "name": "swapUsdcToEth",
+            "name": "swapNcytoGulu",
             "inputs": [
                 {
-                    "name": "usdcAmount",
+                    "name": "ncyAmount",
                     "type": "uint256",
                     "internalType": "uint256"
                 },
                 {
-                    "name": "minEth",
+                    "name": "minGulu",
                     "type": "uint256",
                     "internalType": "uint256"
                 }
@@ -402,19 +415,6 @@ export const AMM_ABI =  [
             "stateMutability": "nonpayable"
         },
         {
-            "type": "function",
-            "name": "usdcToken",
-            "inputs": [],
-            "outputs": [
-                {
-                    "name": "",
-                    "type": "address",
-                    "internalType": "contract USDCContract"
-                }
-            ],
-            "stateMutability": "view"
-        },
-        {
             "type": "event",
             "name": "Approval",
             "inputs": [
@@ -450,13 +450,13 @@ export const AMM_ABI =  [
                     "internalType": "address"
                 },
                 {
-                    "name": "ethAmount",
+                    "name": "ncyAmount",
                     "type": "uint256",
                     "indexed": false,
                     "internalType": "uint256"
                 },
                 {
-                    "name": "usdcAmount",
+                    "name": "guluAmount",
                     "type": "uint256",
                     "indexed": false,
                     "internalType": "uint256"
@@ -481,13 +481,13 @@ export const AMM_ABI =  [
                     "internalType": "address"
                 },
                 {
-                    "name": "ethAmount",
+                    "name": "ncyAmount",
                     "type": "uint256",
                     "indexed": false,
                     "internalType": "uint256"
                 },
                 {
-                    "name": "usdcAmount",
+                    "name": "guluAmount",
                     "type": "uint256",
                     "indexed": false,
                     "internalType": "uint256"
@@ -543,13 +543,13 @@ export const AMM_ABI =  [
             "name": "Sync",
             "inputs": [
                 {
-                    "name": "reserveEth",
+                    "name": "reserveNcy",
                     "type": "uint256",
                     "indexed": false,
                     "internalType": "uint256"
                 },
                 {
-                    "name": "reserveUsdc",
+                    "name": "reserveGulu",
                     "type": "uint256",
                     "indexed": false,
                     "internalType": "uint256"

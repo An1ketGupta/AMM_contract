@@ -2,8 +2,8 @@ import { useEffect, useState } from "react"
 import { useAccount, useReadContract, useWaitForTransactionReceipt, useWriteContract } from "wagmi"
 import { AmmContractConfig } from "../configs/AMMContractConfig";
 import { formatEther, parseEther } from "viem";
-import { EthContractConfig } from "../configs/EthContractConfig";
-import { UsdcContractConfig } from "../configs/USDCContractConfig";
+import { NcyContractConfig } from "../configs/NcyContractConfig";
+import { GuluContractConfig } from "../configs/GuluContractConfig";
 import { useToast } from "./Toast";
 
 export default function RemoveLiquidity() {
@@ -27,8 +27,8 @@ export default function RemoveLiquidity() {
         }
     })
     
-    const { refetch: refetchEthBalance } = useReadContract({
-        ...EthContractConfig,
+    const { refetch: refetchNcyBalance } = useReadContract({
+        ...NcyContractConfig,
         functionName: "balanceOf",
         args: [
             // @ts-ignore
@@ -39,8 +39,8 @@ export default function RemoveLiquidity() {
         }
     })
     
-    const { refetch: refetchUsdcBalance } = useReadContract({
-        ...UsdcContractConfig,
+    const { refetch: refetchGuluBalance } = useReadContract({
+        ...GuluContractConfig,
         functionName: "balanceOf",
         args: [
             // @ts-ignore
@@ -52,14 +52,14 @@ export default function RemoveLiquidity() {
     })
 
     // Get pool reserves to calculate expected returns
-    const { data: poolEthBalance } = useReadContract({
-        ...EthContractConfig,
+    const { data: poolNcyBalance } = useReadContract({
+        ...NcyContractConfig,
         functionName: "balanceOf",
         args: [import.meta.env.VITE_AMM_ADDRESS],
     })
 
-    const { data: poolUsdcBalance } = useReadContract({
-        ...UsdcContractConfig,
+    const { data: poolGuluBalance } = useReadContract({
+        ...GuluContractConfig,
         functionName: "balanceOf",
         args: [import.meta.env.VITE_AMM_ADDRESS],
     })
@@ -73,8 +73,8 @@ export default function RemoveLiquidity() {
         if(receipt?.status == "success"){
             toast.success("Successfully removed liquidity!")
             refetchANCBalance()
-            refetchEthBalance()
-            refetchUsdcBalance()
+            refetchNcyBalance()
+            refetchGuluBalance()
             setANCTokens("")
         }
         if(receipt?.status == "reverted"){
@@ -111,22 +111,22 @@ export default function RemoveLiquidity() {
 
     // Calculate expected returns
     const calculateExpectedReturns = () => {
-        if (!ANCTokens || !totalSupply || !poolEthBalance || !poolUsdcBalance) {
-            return { eth: "0", usdc: "0" };
+        if (!ANCTokens || !totalSupply || !poolNcyBalance || !poolGuluBalance) {
+            return { ncy: "0", gulu: "0" };
         }
         const shares = parseEther(ANCTokens);
         const total = totalSupply as bigint;
-        const ethReserve = poolEthBalance as bigint;
-        const usdcReserve = poolUsdcBalance as bigint;
+        const ncyReserve = poolNcyBalance as bigint;
+        const guluReserve = poolGuluBalance as bigint;
 
-        if (total === 0n) return { eth: "0", usdc: "0" };
+        if (total === 0n) return { ncy: "0", gulu: "0" };
 
-        const ethAmount = (shares * ethReserve) / total;
-        const usdcAmount = (shares * usdcReserve) / total;
+        const ncyAmount = (shares * ncyReserve) / total;
+        const guluAmount = (shares * guluReserve) / total;
 
         return {
-            eth: parseFloat(formatEther(ethAmount)).toFixed(6),
-            usdc: parseFloat(formatEther(usdcAmount)).toFixed(6),
+            ncy: parseFloat(formatEther(ncyAmount)).toFixed(6),
+            gulu: parseFloat(formatEther(guluAmount)).toFixed(6),
         };
     };
 
@@ -190,29 +190,29 @@ export default function RemoveLiquidity() {
                     <span className="text-gray-400 text-sm">You will receive</span>
                     
                     <div className="mt-3 space-y-3">
-                        {/* ETH Return */}
+                        {/* NCY Return */}
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
-                                    <span className="text-white text-sm font-bold">Ξ</span>
+                                    <span className="text-white text-sm font-bold">N</span>
                                 </div>
-                                <span className="text-white font-medium">ETH</span>
+                                <span className="text-white font-medium">NCY</span>
                             </div>
                             <span className="text-2xl font-semibold text-white">
-                                {ANCTokens ? expectedReturns.eth : "0"}
+                                {ANCTokens ? expectedReturns.ncy : "0"}
                             </span>
                         </div>
 
-                        {/* USDC Return */}
+                        {/* GULU Return */}
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-                                    <span className="text-white text-sm font-bold">$</span>
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
+                                    <span className="text-white text-sm font-bold">G</span>
                                 </div>
-                                <span className="text-white font-medium">USDC</span>
+                                <span className="text-white font-medium">GULU</span>
                             </div>
                             <span className="text-2xl font-semibold text-white">
-                                {ANCTokens ? expectedReturns.usdc : "0"}
+                                {ANCTokens ? expectedReturns.gulu : "0"}
                             </span>
                         </div>
                     </div>

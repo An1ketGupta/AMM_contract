@@ -1,4 +1,4 @@
-export const USDC_ABI = [
+export const NCY_ABI = [
         {
             "type": "constructor",
             "inputs": [],

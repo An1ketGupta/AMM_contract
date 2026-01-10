@@ -7,8 +7,8 @@ import { Script } from "forge-std/Script.sol";
 import "forge-std/console.sol";
 
 import "../src/AMM.sol";
-import "../src/EthToken.sol";
-import "../src/USDCToken.sol";
+import "../src/NcyToken.sol";
+import "../src/GuluToken.sol";
 
 contract DeploySepolia is Script {
     function run() external {
@@ -16,18 +16,18 @@ contract DeploySepolia is Script {
 
         vm.startBroadcast(deployerPrivateKey);
 
-        EthContract eth = new EthContract();
-        UsdcContract usdc = new UsdcContract();
+        NcyContract ncy = new NcyContract();
+        GuluContract gulu = new GuluContract();
 
         AMMContract amm = new AMMContract(
-            address(eth),
-            address(usdc)
+            address(ncy),
+            address(gulu)
         );
         vm.stopBroadcast();
 
         console.log("SEPOLIA DEPLOYMENT SUCCESSFUL");
-        console.log("VITE_ETH_ADDRESS=", address(eth));
-        console.log("VITE_USDC_ADDRESS=", address(usdc));
+        console.log("VITE_NCY_ADDRESS=", address(ncy));
+        console.log("VITE_GULU_ADDRESS=", address(gulu));
         console.log("VITE_AMM_ADDRESS=", address(amm));
     }
 }

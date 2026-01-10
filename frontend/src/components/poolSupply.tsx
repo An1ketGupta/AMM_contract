@@ -1,26 +1,26 @@
 import { useReadContract } from "wagmi"
-import { EthContractConfig } from "../configs/EthContractConfig"
+import { NcyContractConfig } from "../configs/NcyContractConfig"
 import { useEffect, useState, forwardRef, useImperativeHandle } from "react"
-import { UsdcContractConfig } from "../configs/USDCContractConfig";
+import { GuluContractConfig } from "../configs/GuluContractConfig";
 
 export interface PoolSupplyHandle {
     refetchPoolSupply: () => void;
 }
 
 const PoolSupply = forwardRef<PoolSupplyHandle, {}>(({}, ref) => {
-    const [ethSupply, setEthSupply] = useState(0);
-    const [usdcSupply, setUsdcSupply] = useState(0);
+    const [ncySupply, setNcySupply] = useState(0);
+    const [guluSupply, setGuluSupply] = useState(0);
 
-    const { data: supplyEth, refetch: refetchEth } = useReadContract({
-        ...EthContractConfig,
+    const { data: supplyNcy, refetch: refetchNcy } = useReadContract({
+        ...NcyContractConfig,
         functionName: "balanceOf",
         args:[
             import.meta.env.VITE_AMM_ADDRESS
         ]
     })
 
-    const { data: supplyUsdc, refetch: refetchUsdc } = useReadContract({
-        ...UsdcContractConfig,
+    const { data: supplyGulu, refetch: refetchGulu } = useReadContract({
+        ...GuluContractConfig,
         functionName: "balanceOf",
         args:[
             import.meta.env.VITE_AMM_ADDRESS
@@ -29,20 +29,20 @@ const PoolSupply = forwardRef<PoolSupplyHandle, {}>(({}, ref) => {
 
     useImperativeHandle(ref, () => ({
         refetchPoolSupply: () => {
-            refetchEth();
-            refetchUsdc();
+            refetchNcy();
+            refetchGulu();
         }
     }));
 
     useEffect(() => {
-        const supplyEthNum = Number(supplyEth)
-        if (supplyEth) setEthSupply(supplyEthNum/1e18)
-    }, [supplyEth])
+        const supplyNcyNum = Number(supplyNcy)
+        if (supplyNcy) setNcySupply(supplyNcyNum/1e18)
+    }, [supplyNcy])
 
     useEffect(() => {
-        const supplyUsdcNum = Number(supplyUsdc)
-        if (supplyUsdc) setUsdcSupply(supplyUsdcNum/1e18)
-    }, [supplyUsdc])
+        const supplyGuluNum = Number(supplyGulu)
+        if (supplyGulu) setGuluSupply(supplyGuluNum/1e18)
+    }, [supplyGulu])
 
 
     return (
@@ -50,20 +50,20 @@ const PoolSupply = forwardRef<PoolSupplyHandle, {}>(({}, ref) => {
             <div className="flex items-center justify-center gap-6 text-sm">
                 <div className="flex items-center gap-2 px-4 py-2 bg-gray-800/50 rounded-xl border border-gray-700/50">
                     <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
-                        <span className="text-white text-[10px] font-bold">Ξ</span>
+                        <span className="text-white text-[10px] font-bold">N</span>
                     </div>
-                    <span className="text-gray-400">Pool ETH:</span>
+                    <span className="text-gray-400">Pool NCY:</span>
                     <span className="text-white font-semibold">
-                        {ethSupply ? ethSupply.toFixed(4) : "0"}
+                        {ncySupply ? ncySupply.toFixed(4) : "0"}
                     </span>
                 </div>
                 <div className="flex items-center gap-2 px-4 py-2 bg-gray-800/50 rounded-xl border border-gray-700/50">
-                    <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-                        <span className="text-white text-[10px] font-bold">$</span>
+                    <div className="w-5 h-5 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
+                        <span className="text-white text-[10px] font-bold">G</span>
                     </div>
-                    <span className="text-gray-400">Pool USDC:</span>
+                    <span className="text-gray-400">Pool GULU:</span>
                     <span className="text-white font-semibold">
-                        {usdcSupply ? usdcSupply.toFixed(2) : "0"}
+                        {guluSupply ? guluSupply.toFixed(2) : "0"}
                     </span>
                 </div>
             </div>

@@ -2,20 +2,20 @@ import { useEffect, useRef, useState } from "react"
 import { AmmContractConfig } from "../configs/AMMContractConfig";
 import { useAccount, useReadContract, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import { formatEther, parseEther } from "viem";
-import { EthContractConfig } from "../configs/EthContractConfig";
-import { UsdcContractConfig } from "../configs/USDCContractConfig";
+import { NcyContractConfig } from "../configs/NcyContractConfig";
+import { GuluContractConfig } from "../configs/GuluContractConfig";
 import type { PoolSupplyHandle } from "./poolSupply";
 import PoolSupply from "./poolSupply";
 import { useToast } from "./Toast";
 
 export default function StakeMoney() {
-    const [ethAmount, setEthAmount] = useState<string>("")
-    const usdcInputRef = useRef<HTMLInputElement | null>(null)
-    const [usdcAmount, setUsdcAmount] = useState<string>("")
-    const [activeTab, setActiveTab] = useState<"eth" | "usdc" | "">("");
+    const [ncyAmount, setNcyAmount] = useState<string>("")
+    const guluInputRef = useRef<HTMLInputElement | null>(null)
+    const [guluAmount, setGuluAmount] = useState<string>("")
+    const [activeTab, setActiveTab] = useState<"ncy" | "gulu" | "">("");
     const { address, isConnected } = useAccount();
     const [isProcessing, setProccessing] = useState(false)
-    const [currentTransaction, setCurrentTransaction] = useState<"ethapprove" | "usdcapprove" | "stake" | "">("")
+    const [currentTransaction, setCurrentTransaction] = useState<"ncyapprove" | "guluapprove" | "stake" | "">("")
     const poolRef = useRef<PoolSupplyHandle>(null);
     const { data: hash, writeContract } = useWriteContract()
     const { data: receipt } = useWaitForTransactionReceipt({
@@ -25,26 +25,26 @@ export default function StakeMoney() {
 
 
     useEffect(() => {
-        if (usdcInputRef.current) {
-            usdcInputRef.current.disabled = true;
+        if (guluInputRef.current) {
+            guluInputRef.current.disabled = true;
         }
     }, [])
 
-    const { data: usdcAmountRequired } = useReadContract({
+    const { data: guluAmountRequired } = useReadContract({
         ...AmmContractConfig,
-        functionName: "GetUsdcAmountRequired",
-        args: [ethAmount ? BigInt(parseEther(ethAmount)) : 0n],
+        functionName: "GetGuluAmountRequired",
+        args: [ncyAmount ? BigInt(parseEther(ncyAmount)) : 0n],
         query: {
-            enabled: activeTab == "eth" && ethAmount != ""
+            enabled: activeTab == "ncy" && ncyAmount != ""
         }
     })
 
-    const { data: ethAmountRequired } = useReadContract({
+    const { data: ncyAmountRequired } = useReadContract({
         ...AmmContractConfig,
-        functionName: "GetEthAmountRequired",
-        args: [usdcAmount ? BigInt(parseEther(usdcAmount)) : 0n],
+        functionName: "GetNcyAmountRequired",
+        args: [guluAmount ? BigInt(parseEther(guluAmount)) : 0n],
         query: {
-            enabled: activeTab == "usdc" && usdcAmount != ""
+            enabled: activeTab == "gulu" && guluAmount != ""
         }
     })
 
@@ -53,54 +53,54 @@ export default function StakeMoney() {
         ...AmmContractConfig,
         functionName: "calculateShare",
         args: [
-            ethAmount ? parseEther(ethAmount) : 0n,
-            usdcAmount ? parseEther(usdcAmount) : 0n
+            ncyAmount ? parseEther(ncyAmount) : 0n,
+            guluAmount ? parseEther(guluAmount) : 0n
         ],
         query: {
             // Only fetch if both inputs have values
-            enabled: ethAmount !== "" && usdcAmount !== "" && Number(ethAmount) > 0 && Number(usdcAmount) > 0
+            enabled: ncyAmount !== "" && guluAmount !== "" && Number(ncyAmount) > 0 && Number(guluAmount) > 0
         }
     })
 
     useEffect(() => {
-        if (usdcAmountRequired == BigInt(0) && activeTab == "eth") {
-            if (usdcInputRef.current)
-                usdcInputRef.current.disabled = false;
+        if (guluAmountRequired == BigInt(0) && activeTab == "ncy") {
+            if (guluInputRef.current)
+                guluInputRef.current.disabled = false;
         }
         // @ts-ignore
-        else if (usdcAmountRequired && activeTab == "eth") {
-            setUsdcAmount(formatEther(usdcAmountRequired).toString())
+        else if (guluAmountRequired && activeTab == "ncy") {
+            setGuluAmount(formatEther(guluAmountRequired).toString())
         }
-    }, [usdcAmountRequired, activeTab])
+    }, [guluAmountRequired, activeTab])
 
     useEffect(() => {
-        if (ethAmountRequired && activeTab == "usdc") {
-            setEthAmount(formatEther(ethAmountRequired).toString())
+        if (ncyAmountRequired && activeTab == "gulu") {
+            setNcyAmount(formatEther(ncyAmountRequired).toString())
         }
-    }, [ethAmountRequired, activeTab])
+    }, [ncyAmountRequired, activeTab])
 
-    function ethHandler(e: any) {
+    function ncyHandler(e: any) {
         const value = e.target.value;
-        setEthAmount(value);
-        setActiveTab("eth")
+        setNcyAmount(value);
+        setActiveTab("ncy")
         if (value == "") {
             setActiveTab("")
-            setEthAmount("");
+            setNcyAmount("");
         }
     }
 
-    function usdcHandler(e: any) {
+    function guluHandler(e: any) {
         const value = e.target.value
-        setActiveTab("usdc")
-        setUsdcAmount(value)
+        setActiveTab("gulu")
+        setGuluAmount(value)
         if (value == "") {
             setActiveTab("")
-            setUsdcAmount("")
+            setGuluAmount("")
         }
     }
 
-    const { data: userEthAllowance, refetch: refetchEthAllowance } = useReadContract({
-        ...EthContractConfig,
+    const { data: userNcyAllowance, refetch: refetchNcyAllowance } = useReadContract({
+        ...NcyContractConfig,
         functionName: "allowance",
         args: [
             // @ts-ignore
@@ -112,8 +112,8 @@ export default function StakeMoney() {
         }
     })
 
-    const { data: userUsdcAllowance, refetch: refetchUsdcAllowance } = useReadContract({
-        ...UsdcContractConfig,
+    const { data: userGuluAllowance, refetch: refetchGuluAllowance } = useReadContract({
+        ...GuluContractConfig,
         functionName: "allowance",
         args: [
             // @ts-ignore
@@ -137,8 +137,8 @@ export default function StakeMoney() {
         }
     })
 
-    const { data: userEthBalance, refetch: refetchEthBalance } = useReadContract({
-        ...EthContractConfig,
+    const { data: userNcyBalance, refetch: refetchNcyBalance } = useReadContract({
+        ...NcyContractConfig,
         functionName: "balanceOf",
         args: [
             // @ts-ignore
@@ -149,8 +149,8 @@ export default function StakeMoney() {
         }
     })
 
-    const { data: userUsdcBalance, refetch: refetchUsdcBalance } = useReadContract({
-        ...UsdcContractConfig,
+    const { data: userGuluBalance, refetch: refetchGuluBalance } = useReadContract({
+        ...GuluContractConfig,
         functionName: "balanceOf",
         args: [
             // @ts-ignore
@@ -164,19 +164,19 @@ export default function StakeMoney() {
     useEffect(() => {
         if (receipt?.status == "success") {
             const messages: Record<string, string> = {
-                "ethapprove": "ETH approved successfully!",
-                "usdcapprove": "USDC approved successfully!",
+                "ncyapprove": "NCY approved successfully!",
+                "guluapprove": "GULU approved successfully!",
                 "stake": "Successfully added liquidity!"
             };
             toast.success(messages[currentTransaction] || "Transaction successful!")
             setProccessing(false)
             setCurrentTransaction("")
-            refetchEthAllowance();
-            refetchUsdcAllowance();
+            refetchNcyAllowance();
+            refetchGuluAllowance();
             // Refetch balances after successful transaction
             poolRef.current?.refetchPoolSupply();
-            refetchEthBalance();
-            refetchUsdcBalance();
+            refetchNcyBalance();
+            refetchGuluBalance();
             refetchANCBalance();
         }
         else if (receipt?.status == 'reverted') {
@@ -190,16 +190,16 @@ export default function StakeMoney() {
         if (!isProcessing) {
             setProccessing(true)
             // @ts-ignore
-            if (formatEther(userEthAllowance) < (Number(ethAmount))) {
-                setCurrentTransaction("ethapprove")
+            if (formatEther(userNcyAllowance) < (Number(ncyAmount))) {
+                setCurrentTransaction("ncyapprove")
                 // @ts-ignore
                 writeContract({
-                    ...EthContractConfig,
+                    ...NcyContractConfig,
                     functionName: "approve",
                     args: [
                         // @ts-ignore
                         import.meta.env.VITE_AMM_ADDRESS,
-                        parseEther(Number(ethAmount+10000).toString())
+                        parseEther(Number(ncyAmount+10000).toString())
                     ]
                 }, {
                     onError: () => {
@@ -209,16 +209,16 @@ export default function StakeMoney() {
                 })
             }
             // @ts-ignore
-            else if (formatEther(userUsdcAllowance) < (Number(usdcAmount))) {
-                setCurrentTransaction("usdcapprove")
+            else if (formatEther(userGuluAllowance) < (Number(guluAmount))) {
+                setCurrentTransaction("guluapprove")
                 // @ts-ignore
                 writeContract({
-                    ...UsdcContractConfig,
+                    ...GuluContractConfig,
                     functionName: "approve",
                     args: [
                         // @ts-ignore
                         import.meta.env.VITE_AMM_ADDRESS,
-                        parseEther(Number(usdcAmount+10000).toString())
+                        parseEther(Number(guluAmount+10000).toString())
                     ]
                 }, {
                     onError: () => {
@@ -233,8 +233,8 @@ export default function StakeMoney() {
                     ...AmmContractConfig,
                     functionName: "stake",
                     args: [
-                        parseEther(ethAmount),
-                        parseEther(usdcAmount),
+                        parseEther(ncyAmount),
+                        parseEther(guluAmount),
                         0n
                     ]
                 }, {
@@ -249,17 +249,17 @@ export default function StakeMoney() {
 
     const getButtonText = () => {
         if (!isConnected) return "Connect Wallet";
-        if (!ethAmount || !usdcAmount) return "Enter amount"
-        if (userEthBalance && Number(ethAmount) > Number(formatEther(userEthBalance as bigint))) {
-            return "Insufficient ETH Balance";
+        if (!ncyAmount || !guluAmount) return "Enter amount"
+        if (userNcyBalance && Number(ncyAmount) > Number(formatEther(userNcyBalance as bigint))) {
+            return "Insufficient NCY Balance";
         }
-        if (userUsdcBalance && Number(usdcAmount) > Number(formatEther(userUsdcBalance as bigint))) {
-            return "Insufficient USDC Balance";
+        if (userGuluBalance && Number(guluAmount) > Number(formatEther(userGuluBalance as bigint))) {
+            return "Insufficient GULU Balance";
         }
         // @ts-ignore
-        if (formatEther(userEthAllowance) < Number(ethAmount)) return "Approve Eth"
+        if (formatEther(userNcyAllowance) < Number(ncyAmount)) return "Approve Ncy"
         // @ts-ignore
-        if (formatEther(userUsdcAllowance) < Number(usdcAmount)) return "Approve USDC"
+        if (formatEther(userGuluAllowance) < Number(guluAmount)) return "Approve GULU"
         return "Stake Tokens"
     }
 
@@ -284,38 +284,38 @@ export default function StakeMoney() {
                     )}
                 </div>
 
-                {/* ETH Input Block */}
+                {/* NCY Input Block */}
                 <div className="bg-gray-800/50 rounded-2xl p-4 border border-gray-700/50 hover:border-gray-600/50 transition-colors">
                     <div className="flex items-center justify-between mb-2">
                         <span className="text-sm text-gray-400">You deposit</span>
                         {isConnected && (
                             <button 
                                 onClick={() => {
-                                    if (userEthBalance) {
-                                        const balance = formatEther(userEthBalance as bigint);
-                                        setEthAmount(balance);
-                                        setActiveTab("eth");
+                                    if (userNcyBalance) {
+                                        const balance = formatEther(userNcyBalance as bigint);
+                                        setNcyAmount(balance);
+                                        setActiveTab("ncy");
                                     }
                                 }}
                                 className="text-xs text-gray-500 hover:text-white transition-colors"
                             >
-                                Balance: {userEthBalance ? parseFloat(formatEther(userEthBalance as bigint)).toFixed(4) : "0"}
+                                Balance: {userNcyBalance ? parseFloat(formatEther(userNcyBalance as bigint)).toFixed(4) : "0"}
                             </button>
                         )}
                     </div>
                     <div className="flex items-center justify-between gap-4">
                         <input
                             type="number"
-                            value={ethAmount}
-                            onChange={ethHandler}
+                            value={ncyAmount}
+                            onChange={ncyHandler}
                             className="w-full bg-transparent text-3xl font-medium text-white outline-none placeholder-gray-600"
                             placeholder="0"
                         />
                         <div className="flex items-center gap-2 px-3 py-2 rounded-2xl bg-gray-700/80">
                             <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
-                                <span className="text-white text-xs font-bold">Ξ</span>
+                                <span className="text-white text-xs font-bold">N</span>
                             </div>
-                            <span className="font-semibold text-white">ETH</span>
+                            <span className="font-semibold text-white">NCY</span>
                         </div>
                     </div>
                 </div>
@@ -329,45 +329,45 @@ export default function StakeMoney() {
                     </div>
                 </div>
 
-                {/* USDC Input Block */}
+                {/* GULU Input Block */}
                 <div className="bg-gray-800/50 rounded-2xl p-4 border border-gray-700/50 hover:border-gray-600/50 transition-colors mt-1">
                     <div className="flex items-center justify-between mb-2">
                         <span className="text-sm text-gray-400">You deposit</span>
                         {isConnected && (
                             <button 
                                 onClick={() => {
-                                    if (userUsdcBalance && usdcInputRef.current && !usdcInputRef.current.disabled) {
-                                        const balance = formatEther(userUsdcBalance as bigint);
-                                        setUsdcAmount(balance);
-                                        setActiveTab("usdc");
+                                    if (userGuluBalance && guluInputRef.current && !guluInputRef.current.disabled) {
+                                        const balance = formatEther(userGuluBalance as bigint);
+                                        setGuluAmount(balance);
+                                        setActiveTab("gulu");
                                     }
                                 }}
                                 className="text-xs text-gray-500 hover:text-white transition-colors"
                             >
-                                Balance: {userUsdcBalance ? parseFloat(formatEther(userUsdcBalance as bigint)).toFixed(2) : "0"}
+                                Balance: {userGuluBalance ? parseFloat(formatEther(userGuluBalance as bigint)).toFixed(2) : "0"}
                             </button>
                         )}
                     </div>
                     <div className="flex items-center justify-between gap-4">
                         <input
                             type="number"
-                            ref={usdcInputRef}
-                            value={usdcAmount}
-                            onChange={usdcHandler}
+                            ref={guluInputRef}
+                            value={guluAmount}
+                            onChange={guluHandler}
                             className="w-full bg-transparent text-3xl font-medium text-white outline-none placeholder-gray-600 disabled:text-gray-500"
                             placeholder="0"
                         />
                         <div className="flex items-center gap-2 px-3 py-2 rounded-2xl bg-gray-700/80">
-                            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-                                <span className="text-white text-xs font-bold">$</span>
+                            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
+                                <span className="text-white text-xs font-bold">G</span>
                             </div>
-                            <span className="font-semibold text-white">USDC</span>
+                            <span className="font-semibold text-white">GULU</span>
                         </div>
                     </div>
                 </div>
 
                 {/* Expected Shares Info */}
-                {ethAmount && usdcAmount && (
+                {ncyAmount && guluAmount && (
                     <div className="mt-4 p-3 bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-xl border border-purple-500/20">
                         <div className="flex justify-between items-center">
                             <span className="text-sm text-gray-400">You will receive</span>
@@ -383,7 +383,7 @@ export default function StakeMoney() {
 
                 {/* Action Button */}
                 <button
-                    disabled={getButtonText() !== "Stake Tokens" && getButtonText() !== "Approve Eth" && getButtonText() !== "Approve USDC"}
+                    disabled={getButtonText() !== "Stake Tokens" && getButtonText() !== "Approve Ncy" && getButtonText() !== "Approve GULU"}
                     onClick={ButtonHandler}
                     className={`w-full mt-4 py-4 rounded-2xl font-semibold text-lg transition-all duration-200 ${
                         getButtonText() === "Connect Wallet"

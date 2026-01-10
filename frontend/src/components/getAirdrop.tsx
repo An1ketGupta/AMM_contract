@@ -1,9 +1,9 @@
 import { useAccount, useReadContract, useWaitForTransactionReceipt, useWriteContract } from "wagmi"
-import { ETH_ABI } from "../abis/ETH_ABI";
-import { USDC_ABI } from "../abis/USDC_ABI";
-import { UsdcContractConfig } from "../configs/USDCContractConfig";
+import { NCY_ABI } from "../abis/NCY_ABI";
+import { GULU_ABI } from "../abis/GULU_ABI";
+import { GuluContractConfig } from "../configs/GuluContractConfig";
 import { AmmContractConfig } from "../configs/AMMContractConfig";
-import { EthContractConfig } from "../configs/EthContractConfig";
+import { NcyContractConfig } from "../configs/NcyContractConfig";
 import { useEffect, useState } from "react";
 import { formatEther } from "viem";
 import { useToast } from "./Toast";
@@ -11,17 +11,17 @@ import { useToast } from "./Toast";
 export default function GetAirdrop() {
   const { data: hash, writeContract } = useWriteContract();
   const { address, isConnected } = useAccount()
-  const [ buttonClicked, setButtonClicked ] = useState<"ETH" | "USDC" |"">("")
+  const [ buttonClicked, setButtonClicked ] = useState<"NCY" | "GULU" |"">("")
   const { data: receipt } = useWaitForTransactionReceipt({
     hash
   });
   const toast = useToast();
 
-  async function GetEthAirdrop() {
-    setButtonClicked("ETH")
+  async function GetNcyAirdrop() {
+    setButtonClicked("NCY")
     writeContract({
-      address: import.meta.env.VITE_ETH_ADDRESS,
-      abi: ETH_ABI,
+      address: import.meta.env.VITE_NCY_ADDRESS,
+      abi: NCY_ABI,
       functionName: '_requestAirdrop'
     },{
       onError:()=>{
@@ -31,11 +31,11 @@ export default function GetAirdrop() {
     })
   }
 
-  async function GetUsdcAirdrop() {
-    setButtonClicked("USDC")
+  async function GetGuluAirdrop() {
+    setButtonClicked("GULU")
     writeContract({
-      address: import.meta.env.VITE_USDC_ADDRESS,
-      abi: USDC_ABI,
+      address: import.meta.env.VITE_GULU_ADDRESS,
+      abi: GULU_ABI,
       functionName: '_requestAirdrop'
     },{
       onError:()=>{
@@ -45,8 +45,8 @@ export default function GetAirdrop() {
     })
   }
 
-  const { data: ethBalance , refetch:refetchUserEthBalance } = useReadContract({
-    ...EthContractConfig,
+  const { data: ncyBalance , refetch:refetchUserNcyBalance } = useReadContract({
+    ...NcyContractConfig,
     functionName: "balanceOf",
     args: [
       // @ts-ignore
@@ -57,8 +57,8 @@ export default function GetAirdrop() {
     }
   })
 
-  const { data: usdcBalance , refetch:refetchUserUsdcBalance } = useReadContract({
-    ...UsdcContractConfig,
+  const { data: guluBalance , refetch:refetchUserGuluBalance } = useReadContract({
+    ...GuluContractConfig,
     functionName: "balanceOf",
     args: [
       // @ts-ignore
@@ -86,20 +86,20 @@ export default function GetAirdrop() {
       setButtonClicked("")
     }
     refetchUserANCBalance()
-    refetchUserEthBalance()
-    refetchUserUsdcBalance()
+    refetchUserNcyBalance()
+    refetchUserGuluBalance()
   },[receipt])
 
-  function getEthButtonText() {
+  function getNcyButtonText() {
     if (isConnected) {
-      return "Get Eth Airdrop"
+      return "Get Ncy Airdrop"
     }
     return "Connect Wallet"
   }
 
-  function getUsdcButtonText() {
+  function getGuluButtonText() {
     if (isConnected) {
-      return "Get Usdc Airdrop"
+      return "Get Gulu Airdrop"
     }
     return "Connect Wallet"
   }
@@ -122,15 +122,15 @@ export default function GetAirdrop() {
         {isConnected && (
           <div className="grid grid-cols-3 gap-2 mb-4">
             <div className="bg-gray-800/50 rounded-xl p-3 text-center">
-              <p className="text-xs text-gray-500 mb-1">ETH</p>
+              <p className="text-xs text-gray-500 mb-1">NCY</p>
               <p className="text-sm font-bold text-blue-400">
-                {ethBalance ? parseFloat(formatEther(ethBalance as bigint)).toFixed(2) : "0"}
+                {ncyBalance ? parseFloat(formatEther(ncyBalance as bigint)).toFixed(2) : "0"}
               </p>
             </div>
             <div className="bg-gray-800/50 rounded-xl p-3 text-center">
-              <p className="text-xs text-gray-500 mb-1">USDC</p>
+              <p className="text-xs text-gray-500 mb-1">GULU</p>
               <p className="text-sm font-bold text-green-400">
-                {usdcBalance ? parseFloat(formatEther(usdcBalance as bigint)).toFixed(2) : "0"}
+                {guluBalance ? parseFloat(formatEther(guluBalance as bigint)).toFixed(2) : "0"}
               </p>
             </div>
             <div className="bg-gray-800/50 rounded-xl p-3 text-center">
@@ -145,24 +145,24 @@ export default function GetAirdrop() {
         {/* Airdrop Buttons */}
         <div className="flex gap-3">
           <button
-            onClick={GetEthAirdrop}
-            disabled={getEthButtonText() == "Connect Wallet" || buttonClicked === "ETH"}
+            onClick={GetNcyAirdrop}
+            disabled={getNcyButtonText() == "Connect Wallet" || buttonClicked === "NCY"}
             className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-2xl font-semibold text-sm transition-all duration-200 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center">
-              <span className="text-xs">Ξ</span>
+              <span className="text-xs">N</span>
             </div>
-            {buttonClicked === "ETH" ? "Claiming..." : "Get ETH"}
+            {buttonClicked === "NCY" ? "Claiming..." : "Get NCY"}
           </button>
           <button
-            onClick={GetUsdcAirdrop}
-            disabled={getUsdcButtonText() == "Connect Wallet" || buttonClicked === "USDC"}
+            onClick={GetGuluAirdrop}
+            disabled={getGuluButtonText() == "Connect Wallet" || buttonClicked === "GULU"}
             className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-2xl font-semibold text-sm transition-all duration-200 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-lg shadow-green-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center">
-              <span className="text-xs">$</span>
+              <span className="text-xs">G</span>
             </div>
-            {buttonClicked === "USDC" ? "Claiming..." : "Get USDC"}
+            {buttonClicked === "GULU" ? "Claiming..." : "Get GULU"}
           </button>
         </div>
 

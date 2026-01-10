@@ -1,4 +1,4 @@
-export const ETH_ABI = [
+export const GULU_ABI = [
         {
             "type": "constructor",
             "inputs": [],

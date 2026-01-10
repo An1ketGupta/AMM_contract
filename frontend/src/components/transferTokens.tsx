@@ -2,13 +2,13 @@ import { useEffect, useState } from "react";
 import { useAccount, useReadContract, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import { AmmContractConfig } from "../configs/AMMContractConfig";
 import { formatEther, parseEther } from "viem";
-import { EthContractConfig } from "../configs/EthContractConfig";
-import { UsdcContractConfig } from "../configs/USDCContractConfig";
+import { NcyContractConfig } from "../configs/NcyContractConfig";
+import { GuluContractConfig } from "../configs/GuluContractConfig";
 
-type TradeDirection = "ethToUsdc" | "usdcToEth";
+type TradeDirection = "ncyToGulu" | "guluToNcy";
 
 export default function TransferTokens() {
-    const [tradeDirection, setTradeDirection] = useState<TradeDirection>("ethToUsdc");
+    const [tradeDirection, setTradeDirection] = useState<TradeDirection>("ncyToGulu");
     const { address, isConnected } = useAccount();
     const [inputAmount, setInputAmount] = useState("");
     const [outputAmount, setOutputAmount] = useState("");
@@ -19,43 +19,43 @@ export default function TransferTokens() {
         hash,
     });
 
-    const { data: expectedUsdcAmount, isLoading: loadingUsdc } = useReadContract({
+    const { data: expectedGuluAmount, isLoading: loadingGulu } = useReadContract({
         ...AmmContractConfig,
-        functionName: "GetUsdcAmountForEth",
+        functionName: "GetGuluAmountForNcy",
         args: [inputAmount ? parseEther(inputAmount) : 0n],
-        query: { enabled: tradeDirection === "ethToUsdc" && inputAmount !== "" }
+        query: { enabled: tradeDirection === "ncyToGulu" && inputAmount !== "" }
     });
 
-    const { data: expectedEthAmount, isLoading: loadingEth } = useReadContract({
+    const { data: expectedNcyAmount, isLoading: loadingNcy } = useReadContract({
         ...AmmContractConfig,
-        functionName: "GetEthAmountForUsdc",
+        functionName: "GetNcyAmountForGulu",
         args: [inputAmount ? parseEther(inputAmount) : 0n],
-        query: { enabled: tradeDirection === "usdcToEth" && inputAmount !== "" }
+        query: { enabled: tradeDirection === "guluToNcy" && inputAmount !== "" }
     });
 
-    const { data: userEthAllowance, refetch: refetchEthAllowance } = useReadContract({
-        ...EthContractConfig,
+    const { data: userNcyAllowance, refetch: refetchNcyAllowance } = useReadContract({
+        ...NcyContractConfig,
         functionName: "allowance",
         args: [address!, import.meta.env.VITE_AMM_ADDRESS],
         query: { enabled: address!=undefined }
     });
 
-    const { data: userUsdcAllowance, refetch: refetchUsdcAllowance } = useReadContract({
-        ...UsdcContractConfig,
+    const { data: userGuluAllowance, refetch: refetchGuluAllowance } = useReadContract({
+        ...GuluContractConfig,
         functionName: "allowance",
         args: [address!, import.meta.env.VITE_AMM_ADDRESS],
         query: { enabled: address!=undefined }
     });
 
-    const { data: userEthBalance ,refetch:refetchEthBalance } = useReadContract({
-        ...EthContractConfig,
+    const { data: userNcyBalance ,refetch:refetchNcyBalance } = useReadContract({
+        ...NcyContractConfig,
         functionName: "balanceOf",
         args: [address!],
         query: { enabled: address != undefined }
     });
 
-    const { data: userUsdcBalance ,refetch:refetchUsdcBalance } = useReadContract({
-        ...UsdcContractConfig,
+    const { data: userGuluBalance ,refetch:refetchGuluBalance } = useReadContract({
+        ...GuluContractConfig,
         functionName: "balanceOf",
         args: [address!],
         query: { enabled: address != undefined }
@@ -66,61 +66,61 @@ export default function TransferTokens() {
             setOutputAmount("");
             return;
         }
-        if (tradeDirection === "ethToUsdc" && expectedUsdcAmount) {
-            setOutputAmount(formatEther(expectedUsdcAmount));
-        } else if (tradeDirection === "usdcToEth" && expectedEthAmount) {
-            setOutputAmount(formatEther(expectedEthAmount));
+        if (tradeDirection === "ncyToGulu" && expectedGuluAmount) {
+            setOutputAmount(formatEther(expectedGuluAmount));
+        } else if (tradeDirection === "guluToNcy" && expectedNcyAmount) {
+            setOutputAmount(formatEther(expectedNcyAmount));
         }
-    }, [expectedUsdcAmount, expectedEthAmount, tradeDirection, inputAmount]);
+    }, [expectedGuluAmount, expectedNcyAmount, tradeDirection, inputAmount]);
 
     useEffect(() => {
         if (isConfirmed) {
-            refetchEthAllowance();
-            refetchUsdcAllowance();
-            refetchUsdcBalance();
-            refetchEthBalance();
+            refetchNcyAllowance();
+            refetchGuluAllowance();
+            refetchGuluBalance();
+            refetchNcyBalance();
         }
-    }, [isConfirmed, refetchEthAllowance, refetchUsdcAllowance]);
+    }, [isConfirmed, refetchNcyAllowance, refetchGuluAllowance]);
 
 
     const switchDirection = () => {
-        setTradeDirection(tradeDirection === "ethToUsdc" ? "usdcToEth" : "ethToUsdc");
+        setTradeDirection(tradeDirection === "ncyToGulu" ? "guluToNcy" : "ncyToGulu");
         setInputAmount("");
         setOutputAmount("");
     };
 
     const parsedInput = inputAmount ? parseEther(inputAmount+10000) : 0n;
-    const currentEthAllowance = userEthAllowance ?? 0n;
-    const currentUsdcAllowance = userUsdcAllowance ?? 0n;
+    const currentNcyAllowance = userNcyAllowance ?? 0n;
+    const currentGuluAllowance = userGuluAllowance ?? 0n;
 
     function transferHandler() {
         if (!address) return;
 
-        if (tradeDirection === "ethToUsdc") {
-            if (currentEthAllowance < parsedInput) {
+        if (tradeDirection === "ncyToGulu") {
+            if (currentNcyAllowance < parsedInput) {
                 writeContract({
-                    ...EthContractConfig,
+                    ...NcyContractConfig,
                     functionName: "approve",
                     args: [import.meta.env.VITE_AMM_ADDRESS, parsedInput]
                 });
             } else {
                 writeContract({
                     ...AmmContractConfig,
-                    functionName: "swapEthtoUsdc",
+                    functionName: "swapNcytoGulu",
                     args: [parsedInput, 0n] // 0n is minAmountOut (slippage protection)
                 });
             }
         } else {
-            if (currentUsdcAllowance < parsedInput) {
+            if (currentGuluAllowance < parsedInput) {
                 writeContract({
-                    ...UsdcContractConfig,
+                    ...GuluContractConfig,
                     functionName: "approve",
                     args: [import.meta.env.VITE_AMM_ADDRESS, parsedInput]
                 });
             } else {
                 writeContract({
                     ...AmmContractConfig,
-                    functionName: "swapUsdcToEth",
+                    functionName: "swapGuluToNcy",
                     args: [parsedInput, 0n]
                 });
             }
@@ -132,23 +132,23 @@ export default function TransferTokens() {
         if (isWritePending || isConfirming) return "Transaction Pending...";
         if (!inputAmount) return "Enter an amount";
         
-        if (tradeDirection === "ethToUsdc") {
-            return currentEthAllowance < parsedInput ? "Approve ETH" : "Swap";
+        if (tradeDirection === "ncyToGulu") {
+            return currentNcyAllowance < parsedInput ? "Approve NCY" : "Swap";
         } else {
-            return currentUsdcAllowance < parsedInput ? "Approve USDC" : "Swap";
+            return currentGuluAllowance < parsedInput ? "Approve GULU" : "Swap";
         }
     };
 
-    const isQuoteLoading = loadingUsdc || loadingEth;
+    const isQuoteLoading = loadingGulu || loadingNcy;
     const isTransacting = isWritePending || isConfirming;
 
-    const inputToken = tradeDirection === "ethToUsdc" ? "ETH" : "USDC";
-    const outputToken = tradeDirection === "ethToUsdc" ? "USDC" : "ETH";
-    const inputBalance = tradeDirection === "ethToUsdc" ? userEthBalance : userUsdcBalance;
+    const inputToken = tradeDirection === "ncyToGulu" ? "NCY" : "GULU";
+    const outputToken = tradeDirection === "ncyToGulu" ? "GULU" : "NCY";
+    const inputBalance = tradeDirection === "ncyToGulu" ? userNcyBalance : userGuluBalance;
 
-    const needsApproval = tradeDirection === "ethToUsdc" 
-        ? currentEthAllowance < parsedInput 
-        : currentUsdcAllowance < parsedInput;
+    const needsApproval = tradeDirection === "ncyToGulu" 
+        ? currentNcyAllowance < parsedInput 
+        : currentGuluAllowance < parsedInput;
 
     return (
         <div className="w-full max-w-md">
@@ -187,12 +187,12 @@ export default function TransferTokens() {
                         />
                         <div className="flex items-center gap-2 px-3 py-2 rounded-2xl bg-gray-700/80 hover:bg-gray-700 transition-colors cursor-pointer">
                             <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                                inputToken === "ETH" 
+                                inputToken === "NCY" 
                                     ? "bg-gradient-to-br from-blue-400 to-indigo-500" 
-                                    : "bg-gradient-to-br from-blue-500 to-blue-600"
+                                    : "bg-gradient-to-br from-green-500 to-emerald-600"
                             }`}>
                                 <span className="text-white text-xs font-bold">
-                                    {inputToken === "ETH" ? "Ξ" : "$"}
+                                    {inputToken === "NCY" ? "N" : "G"}
                                 </span>
                             </div>
                             <span className="text-white font-semibold">{inputToken}</span>
@@ -230,12 +230,12 @@ export default function TransferTokens() {
                         />
                         <div className="flex items-center gap-2 px-3 py-2 rounded-2xl bg-gray-700/80">
                             <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                                outputToken === "ETH" 
+                                outputToken === "NCY" 
                                     ? "bg-gradient-to-br from-blue-400 to-indigo-500" 
-                                    : "bg-gradient-to-br from-blue-500 to-blue-600"
+                                    : "bg-gradient-to-br from-green-500 to-emerald-600"
                             }`}>
                                 <span className="text-white text-xs font-bold">
-                                    {outputToken === "ETH" ? "Ξ" : "$"}
+                                    {outputToken === "NCY" ? "N" : "G"}
                                 </span>
                             </div>
                             <span className="text-white font-semibold">{outputToken}</span>

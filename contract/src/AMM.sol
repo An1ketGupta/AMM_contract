@@ -6,30 +6,30 @@ import { ERC20 } from "../lib/openzeppelin-contracts/contracts/token/ERC20/ERC20
 import { IERC20 } from "../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import { ReentrancyGuard } from "../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-interface ETHContract is IERC20 {}
-interface USDCContract is IERC20 {}
+interface NCYContract is IERC20 {}
+interface GULUContract is IERC20 {}
 
 contract AMMContract is ERC20, ReentrancyGuard {
 
-    uint private reserveEth;
-    uint private reserveUsdc;
+    uint private reserveNcy;
+    uint private reserveGulu;
 
     uint constant private MINIMUM_LIQUIDITY = 1000;
 
-    ETHContract public ethToken;
-    USDCContract public usdcToken;
+    NCYContract public ncyToken;
+    GULUContract public guluToken;
 
     event LiquidityAdded(
         address indexed provider,
-        uint ethAmount,
-        uint usdcAmount,
+        uint ncyAmount,
+        uint guluAmount,
         uint sharesMinted
     );
 
     event LiquidityRemoved(
         address indexed provider,
-        uint ethAmount,
-        uint usdcAmount,
+        uint ncyAmount,
+        uint guluAmount,
         uint sharesBurned
     );
 
@@ -41,132 +41,132 @@ contract AMMContract is ERC20, ReentrancyGuard {
         uint amountOut
     );
 
-    event Sync(uint reserveEth, uint reserveUsdc);
+    event Sync(uint reserveNcy, uint reserveGulu);
 
-    constructor(address ethAddress, address usdcAddress)
+    constructor(address ncyAddress, address guluAddress)
         ERC20("AniketCoin", "ANC")
     {
-        require(ethAddress != address(0), "Invalid Eth address");
-        require(usdcAddress != address(0), "Invalid USDC address");
+        require(ncyAddress != address(0), "Invalid Ncy address");
+        require(guluAddress != address(0), "Invalid GULU address");
 
-        ethToken = ETHContract(ethAddress);
-        usdcToken = USDCContract(usdcAddress);
+        ncyToken = NCYContract(ncyAddress);
+        guluToken = GULUContract(guluAddress);
     }
     
     function getActualTokenAmount(
-        uint ethAmount,
-        uint usdcAmount
+        uint ncyAmount,
+        uint guluAmount
     ) public view returns (uint, uint) {
-        if (reserveEth == 0 || reserveUsdc == 0) {
-            return (ethAmount, usdcAmount);
+        if (reserveNcy == 0 || reserveGulu == 0) {
+            return (ncyAmount, guluAmount);
         }
 
-        uint usdcForEth = (reserveUsdc * ethAmount) / reserveEth;
-        uint ethForUsdc = (reserveEth * usdcAmount) / reserveUsdc;
+        uint guluForNcy = (reserveGulu * ncyAmount) / reserveNcy;
+        uint ncyForGulu = (reserveNcy * guluAmount) / reserveGulu;
 
-        if (usdcForEth <= usdcAmount) {
-            return (ethAmount, usdcForEth);
+        if (guluForNcy <= guluAmount) {
+            return (ncyAmount, guluForNcy);
         } else {
-            return (ethForUsdc, usdcAmount);
+            return (ncyForGulu, guluAmount);
         }
     }
 
     function calculateShare(
-        uint ethAmount,
-        uint usdcAmount
+        uint ncyAmount,
+        uint guluAmount
     ) public view returns (uint) {
 
         if (totalSupply() == 0) {
-            uint shares = Math.sqrt(ethAmount * usdcAmount);
+            uint shares = Math.sqrt(ncyAmount * guluAmount);
             require(shares > MINIMUM_LIQUIDITY, "Insufficient liquidity");
             return shares - MINIMUM_LIQUIDITY;
         }
 
-        uint sharesEth = (ethAmount * totalSupply()) / reserveEth;
-        uint sharesUsdc = (usdcAmount * totalSupply()) / reserveUsdc;
+        uint sharesNcy = (ncyAmount * totalSupply()) / reserveNcy;
+        uint sharesGulu = (guluAmount * totalSupply()) / reserveGulu;
 
-        return Math.min(sharesEth, sharesUsdc);
+        return Math.min(sharesNcy, sharesGulu);
     }
 
-    function GetUsdcAmountRequired(uint ethAmount) view public returns (uint){
-        require(ethAmount > 0 , "Provide some tokens");
-        if(reserveEth == 0 && reserveUsdc == 0){
+    function GetGuluAmountRequired(uint ncyAmount) view public returns (uint){
+        require(ncyAmount > 0 , "Provide some tokens");
+        if(reserveNcy == 0 && reserveGulu == 0){
             return 0;
         }
         else{
-            uint usdcAmountRequired = ( ethAmount * reserveUsdc )/reserveEth;
-            return usdcAmountRequired;
+            uint guluAmountRequired = ( ncyAmount * reserveGulu )/reserveNcy;
+            return guluAmountRequired;
         }
     }
 
-    function GetEthAmountRequired(uint usdcAmount) view public returns (uint){
-        require(usdcAmount > 0 , "Provide some tokens");
-        if(reserveEth == 0 && reserveUsdc == 0){
+    function GetNcyAmountRequired(uint guluAmount) view public returns (uint){
+        require(guluAmount > 0 , "Provide some tokens");
+        if(reserveNcy == 0 && reserveGulu == 0){
             return 0;
         }
         else{
-            uint ethAmountRequired = ( usdcAmount * reserveEth )/reserveUsdc;
-            return ethAmountRequired;
+            uint ncyAmountRequired = ( guluAmount * reserveNcy )/reserveGulu;
+            return ncyAmountRequired;
         }
     }
 
-    function GetUsdcAmountForEth(uint receivedEth) public view returns (uint){
-        uint netEth = (receivedEth * 997) / 1000;
-        uint usdcOut =
-            (reserveUsdc * netEth) / (reserveEth + netEth);
-        return usdcOut;
+    function GetGuluAmountForNcy(uint receivedNcy) public view returns (uint){
+        uint netNcy = (receivedNcy * 997) / 1000;
+        uint guluOut =
+            (reserveGulu * netNcy) / (reserveNcy + netNcy);
+        return guluOut;
     }
 
-    function GetEthAmountForUsdc(uint receivedUsdc) public view returns (uint){
-        uint netUsdc = (receivedUsdc * 997) / 1000;
-        uint ethOut =
-            (reserveEth * netUsdc) / (reserveUsdc + netUsdc);
-        return ethOut; 
+    function GetNcyAmountForGulu(uint receivedGulu) public view returns (uint){
+        uint netGulu = (receivedGulu * 997) / 1000;
+        uint ncyOut =
+            (reserveNcy * netGulu) / (reserveGulu + netGulu);
+        return ncyOut; 
     }
 
     function _sync() internal {
-        reserveEth = ethToken.balanceOf(address(this));
-        reserveUsdc = usdcToken.balanceOf(address(this));
-        emit Sync(reserveEth, reserveUsdc);
+        reserveNcy = ncyToken.balanceOf(address(this));
+        reserveGulu = guluToken.balanceOf(address(this));
+        emit Sync(reserveNcy, reserveGulu);
     }
 
     function stake(
-        uint amountEth,
-        uint amountUsdc,
+        uint amountNcy,
+        uint amountGulu,
         uint minshares
     ) public nonReentrant {
 
-        require(amountEth > 0 && amountUsdc > 0, "Cannot stake zero tokens");
+        require(amountNcy > 0 && amountGulu > 0, "Cannot stake zero tokens");
 
-        uint ethBefore = ethToken.balanceOf(address(this));
-        ethToken.transferFrom(msg.sender, address(this), amountEth);
-        uint receivedEth = ethToken.balanceOf(address(this)) - ethBefore;
+        uint ncyBefore = ncyToken.balanceOf(address(this));
+        ncyToken.transferFrom(msg.sender, address(this), amountNcy);
+        uint receivedNcy = ncyToken.balanceOf(address(this)) - ncyBefore;
 
-        uint usdcBefore = usdcToken.balanceOf(address(this));
-        usdcToken.transferFrom(msg.sender, address(this), amountUsdc);
-        uint receivedUsdc = usdcToken.balanceOf(address(this)) - usdcBefore;
+        uint guluBefore = guluToken.balanceOf(address(this));
+        guluToken.transferFrom(msg.sender, address(this), amountGulu);
+        uint receivedGulu = guluToken.balanceOf(address(this)) - guluBefore;
 
-        (uint neededEth, uint neededUsdc) =
-        getActualTokenAmount(receivedEth, receivedUsdc);
+        (uint neededNcy, uint neededGulu) =
+        getActualTokenAmount(receivedNcy, receivedGulu);
 
-        uint shares = calculateShare(neededEth, neededUsdc);
+        uint shares = calculateShare(neededNcy, neededGulu);
         require(shares >= minshares, "Minimum slippage violation");
 
         if (totalSupply() == 0) {
             _mint(address(1), MINIMUM_LIQUIDITY);
         }
 
-        if (receivedEth > neededEth) {
-            ethToken.transfer(msg.sender, receivedEth - neededEth);
+        if (receivedNcy > neededNcy) {
+            ncyToken.transfer(msg.sender, receivedNcy - neededNcy);
         }
-        if (receivedUsdc > neededUsdc) {
-            usdcToken.transfer(msg.sender, receivedUsdc - neededUsdc);
+        if (receivedGulu > neededGulu) {
+            guluToken.transfer(msg.sender, receivedGulu - neededGulu);
         }
 
         _mint(msg.sender, shares);
         _sync();
 
-        emit LiquidityAdded(msg.sender, neededEth, neededUsdc, shares);
+        emit LiquidityAdded(msg.sender, neededNcy, neededGulu, shares);
     }
 
     function removeLiquidity(uint shares) public nonReentrant {
@@ -174,8 +174,8 @@ contract AMMContract is ERC20, ReentrancyGuard {
 
         _sync();
 
-        uint ethAmount = (shares * reserveEth) / totalSupply();
-        uint usdcAmount = (shares * reserveUsdc) / totalSupply();
+        uint ncyAmount = (shares * reserveNcy) / totalSupply();
+        uint guluAmount = (shares * reserveGulu) / totalSupply();
 
         require(
             totalSupply() - shares >= MINIMUM_LIQUIDITY,
@@ -184,61 +184,61 @@ contract AMMContract is ERC20, ReentrancyGuard {
 
         _burn(msg.sender, shares);
 
-        reserveEth -= ethAmount;
-        reserveUsdc -= usdcAmount;
+        reserveNcy -= ncyAmount;
+        reserveGulu -= guluAmount;
 
-        ethToken.transfer(msg.sender, ethAmount);
-        usdcToken.transfer(msg.sender, usdcAmount);
+        ncyToken.transfer(msg.sender, ncyAmount);
+        guluToken.transfer(msg.sender, guluAmount);
 
-        emit LiquidityRemoved(msg.sender, ethAmount, usdcAmount, shares);
-        emit Sync(reserveEth, reserveUsdc);
+        emit LiquidityRemoved(msg.sender, ncyAmount, guluAmount, shares);
+        emit Sync(reserveNcy, reserveGulu);
     }
 
-    function swapEthtoUsdc(uint ethAmount, uint minUsdc) public nonReentrant {
-        require(ethAmount > 0, "Can't swap 0");
-        require(reserveEth > 0 && reserveUsdc > 0, "No liquidity");
+    function swapNcytoGulu(uint ncyAmount, uint minGulu) public nonReentrant {
+        require(ncyAmount > 0, "Can't swap 0");
+        require(reserveNcy > 0 && reserveGulu > 0, "No liquidity");
 
-        uint beforeEth = ethToken.balanceOf(address(this));
-        ethToken.transferFrom(msg.sender, address(this), ethAmount);
-        uint receivedEth = ethToken.balanceOf(address(this)) - beforeEth;
+        uint beforeNcy = ncyToken.balanceOf(address(this));
+        ncyToken.transferFrom(msg.sender, address(this), ncyAmount);
+        uint receivedNcy = ncyToken.balanceOf(address(this)) - beforeNcy;
 
-        uint usdcOut = GetUsdcAmountForEth(receivedEth);
+        uint guluOut = GetGuluAmountForNcy(receivedNcy);
 
-        require(usdcOut >= minUsdc, "Slippage");
+        require(guluOut >= minGulu, "Slippage");
 
-        usdcToken.transfer(msg.sender, usdcOut);
+        guluToken.transfer(msg.sender, guluOut);
         _sync();
 
         emit Swap(
             msg.sender,
-            address(ethToken),
-            address(usdcToken),
-            receivedEth,
-            usdcOut
+            address(ncyToken),
+            address(guluToken),
+            receivedNcy,
+            guluOut
         );
     }
 
-    function swapUsdcToEth(uint usdcAmount, uint minEth) public nonReentrant {
-        require(usdcAmount > 0, "Can't swap 0");
-        require(reserveEth > 0 && reserveUsdc > 0, "No liquidity");
+    function swapGuluToNcy(uint guluAmount, uint minNcy) public nonReentrant {
+        require(guluAmount > 0, "Can't swap 0");
+        require(reserveNcy > 0 && reserveGulu > 0, "No liquidity");
 
-        uint beforeUsdc = usdcToken.balanceOf(address(this));
-        usdcToken.transferFrom(msg.sender, address(this), usdcAmount);
-        uint receivedUsdc = usdcToken.balanceOf(address(this)) - beforeUsdc;
+        uint beforeGulu = guluToken.balanceOf(address(this));
+        guluToken.transferFrom(msg.sender, address(this), guluAmount);
+        uint receivedGulu = guluToken.balanceOf(address(this)) - beforeGulu;
 
-        uint ethOut = GetEthAmountForUsdc(receivedUsdc);
+        uint ncyOut = GetNcyAmountForGulu(receivedGulu);
 
-        require(ethOut >= minEth, "Slippage");
+        require(ncyOut >= minNcy, "Slippage");
 
-        ethToken.transfer(msg.sender, ethOut);
+        ncyToken.transfer(msg.sender, ncyOut);
         _sync();
 
         emit Swap(
             msg.sender,
-            address(usdcToken),
-            address(ethToken),
-            receivedUsdc,
-            ethOut
+            address(guluToken),
+            address(ncyToken),
+            receivedGulu,
+            ncyOut
         );
     }
 }
