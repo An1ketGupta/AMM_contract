@@ -110,6 +110,20 @@ contract AMMContract is ERC20, ReentrancyGuard {
         }
     }
 
+    function GetUsdcAmountForEth(uint receivedEth) public view returns (uint){
+        uint netEth = (receivedEth * 997) / 1000;
+        uint usdcOut =
+            (reserveUsdc * netEth) / (reserveEth + netEth);
+        return usdcOut;
+    }
+
+    function GetEthAmountForUsdc(uint receivedUsdc) public view returns (uint){
+        uint netUsdc = (receivedUsdc * 997) / 1000;
+        uint ethOut =
+            (reserveEth * netUsdc) / (reserveUsdc + netUsdc);
+        return ethOut; 
+    }
+
     function _sync() internal {
         reserveEth = ethToken.balanceOf(address(this));
         reserveUsdc = usdcToken.balanceOf(address(this));
@@ -188,9 +202,7 @@ contract AMMContract is ERC20, ReentrancyGuard {
         ethToken.transferFrom(msg.sender, address(this), ethAmount);
         uint receivedEth = ethToken.balanceOf(address(this)) - beforeEth;
 
-        uint netEth = (receivedEth * 997) / 1000;
-        uint usdcOut =
-            (reserveUsdc * netEth) / (reserveEth + netEth);
+        uint usdcOut = GetUsdcAmountForEth(receivedEth);
 
         require(usdcOut >= minUsdc, "Slippage");
 
@@ -214,9 +226,7 @@ contract AMMContract is ERC20, ReentrancyGuard {
         usdcToken.transferFrom(msg.sender, address(this), usdcAmount);
         uint receivedUsdc = usdcToken.balanceOf(address(this)) - beforeUsdc;
 
-        uint netUsdc = (receivedUsdc * 997) / 1000;
-        uint ethOut =
-            (reserveEth * netUsdc) / (reserveUsdc + netUsdc);
+        uint ethOut = GetEthAmountForUsdc(receivedUsdc);
 
         require(ethOut >= minEth, "Slippage");
 

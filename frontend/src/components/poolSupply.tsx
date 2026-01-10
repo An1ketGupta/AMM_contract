@@ -1,13 +1,17 @@
 import { useReadContract } from "wagmi"
 import { EthContractConfig } from "../configs/EthContractConfig"
-import { useEffect, useState } from "react"
+import { useEffect, useState, forwardRef, useImperativeHandle } from "react"
 import { UsdcContractConfig } from "../configs/USDCContractConfig";
 
-export default function PoolSupply() {
+export interface PoolSupplyHandle {
+    refetchPoolSupply: () => void;
+}
+
+const PoolSupply = forwardRef<PoolSupplyHandle, {}>((props, ref) => {
     const [ethSupply, setEthSupply] = useState(0);
     const [usdcSupply, setUsdcSupply] = useState(0);
 
-    const { data: supplyEth } = useReadContract({
+    const { data: supplyEth, refetch: refetchEth } = useReadContract({
         ...EthContractConfig,
         functionName: "balanceOf",
         args:[
@@ -15,7 +19,7 @@ export default function PoolSupply() {
         ]
     })
 
-    const { data: supplyUsdc } = useReadContract({
+    const { data: supplyUsdc, refetch: refetchUsdc } = useReadContract({
         ...UsdcContractConfig,
         functionName: "balanceOf",
         args:[
@@ -23,6 +27,12 @@ export default function PoolSupply() {
         ]
     })
 
+    useImperativeHandle(ref, () => ({
+        refetchPoolSupply: () => {
+            refetchEth();
+            refetchUsdc();
+        }
+    }));
 
     useEffect(() => {
         const supplyEthNum = Number(supplyEth)
@@ -35,12 +45,16 @@ export default function PoolSupply() {
     }, [supplyUsdc])
 
 
-    return <div>
+    return (
         <div>
-            ETH in the Pool: {ethSupply ? ethSupply.toString() : "Loading..."}
+            <div>
+                ETH in the Pool: {ethSupply ? ethSupply.toString() : "Loading..."}
+            </div>
+            <div>
+                USDC in the pool: {usdcSupply ? usdcSupply.toString() : "Loading..."}
+            </div>
         </div>
-        <div>
-            USDC in the pool: {usdcSupply ? usdcSupply.toString() : "Loading..."}
-        </div>
-    </div>
-}
+    )
+})
+
+export default PoolSupply;

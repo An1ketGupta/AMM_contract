@@ -17,10 +17,48 @@ export const AMM_ABI = [
         },
         {
             "type": "function",
+            "name": "GetEthAmountForUsdc",
+            "inputs": [
+                {
+                    "name": "receivedUsdc",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                }
+            ],
+            "stateMutability": "view"
+        },
+        {
+            "type": "function",
             "name": "GetEthAmountRequired",
             "inputs": [
                 {
                     "name": "usdcAmount",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                }
+            ],
+            "stateMutability": "view"
+        },
+        {
+            "type": "function",
+            "name": "GetUsdcAmountForEth",
+            "inputs": [
+                {
+                    "name": "receivedEth",
                     "type": "uint256",
                     "internalType": "uint256"
                 }

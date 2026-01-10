@@ -4,7 +4,6 @@ import { USDC_ABI } from "../abis/USDC_ABI";
 import { UsdcContractConfig } from "../configs/USDCContractConfig";
 import { AmmContractConfig } from "../configs/AMMContractConfig";
 import { EthContractConfig } from "../configs/EthContractConfig";
-import { formatEther } from "viem";
 import { useEffect, useState } from "react";
 
 export default function GetAirdrop() {
@@ -109,17 +108,6 @@ export default function GetAirdrop() {
     <div className="flex gap-2">
       <button onClick={GetEthAirdrop} disabled={getEthButtonText() == "Connect Wallet"} className="bg-gray-500 p-3 mr-4 rounded-lg">{getEthButtonText()}</button>
       <button onClick={GetUsdcAirdrop} disabled={getUsdcButtonText() == "Connect Wallet"} className="bg-gray-500 p-3 mr-4 rounded-lg">{getUsdcButtonText()}</button>
-    </div>
-    <div className="flex gap-4 mt-10">
-      <div>
-        EthBalance: {ethBalance ? formatEther(ethBalance) : "0"}
-      </div>
-      <div>
-        UsdcBalance: {usdcBalance ? formatEther(usdcBalance) : "0"}
-      </div>
-      <div>
-        ANCBalance: {ancBalance ? formatEther(ancBalance) : "0"}
-      </div>
     </div>
   </div>
 }

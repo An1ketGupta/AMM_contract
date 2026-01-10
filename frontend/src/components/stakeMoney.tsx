@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react"
 import { AmmContractConfig } from "../configs/AMMContractConfig";
 import { useAccount, useReadContract, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
-import { decodeErrorResult, erc20Abi, formatEther, parseEther } from "viem";
+import { formatEther, parseEther } from "viem";
 import { EthContractConfig } from "../configs/EthContractConfig";
 import { UsdcContractConfig } from "../configs/USDCContractConfig";
+import type { PoolSupplyHandle } from "./poolSupply";
+import PoolSupply from "./poolSupply";
 
 export default function StakeMoney() {
     const [ethAmount, setEthAmount] = useState<string>("")
@@ -12,11 +14,13 @@ export default function StakeMoney() {
     const [activeTab, setActiveTab] = useState<"eth" | "usdc" | "">("");
     const { address, isConnected } = useAccount();
     const [isProcessing, setProccessing] = useState(false)
-    const [ currentTransaction , setCurrentTransaction ] = useState<"ethapprove" | "usdcapprove"| "stake" | "">("")
-    const { data: hash, writeContract, error: walletError } = useWriteContract()
-    const { data: receipt, isSuccess: isConfirmed, error: confirmError } = useWaitForTransactionReceipt({
+    const [currentTransaction, setCurrentTransaction] = useState<"ethapprove" | "usdcapprove" | "stake" | "">("")
+    const poolRef = useRef<PoolSupplyHandle>(null);
+    const { data: hash, writeContract } = useWriteContract()
+    const { data: receipt } = useWaitForTransactionReceipt({
         hash
     })
+
 
     useEffect(() => {
         if (usdcInputRef.current) {
@@ -42,6 +46,20 @@ export default function StakeMoney() {
         }
     })
 
+    // NEW: Calculate expected shares based on current inputs
+    const { data: expectedShares } = useReadContract({
+        ...AmmContractConfig,
+        functionName: "calculateShare",
+        args: [
+            ethAmount ? parseEther(ethAmount) : 0n,
+            usdcAmount ? parseEther(usdcAmount) : 0n
+        ],
+        query: {
+            // Only fetch if both inputs have values
+            enabled: ethAmount !== "" && usdcAmount !== "" && Number(ethAmount) > 0 && Number(usdcAmount) > 0
+        }
+    })
+
     useEffect(() => {
         if (usdcAmountRequired == BigInt(0) && activeTab == "eth") {
             if (usdcInputRef.current)
@@ -54,7 +72,7 @@ export default function StakeMoney() {
     }, [usdcAmountRequired, activeTab])
 
     useEffect(() => {
-        if (ethAmountRequired && activeTab == "eth") {
+        if (ethAmountRequired && activeTab == "usdc") {
             setEthAmount(formatEther(ethAmountRequired).toString())
         }
     }, [ethAmountRequired, activeTab])
@@ -105,20 +123,61 @@ export default function StakeMoney() {
         }
     })
 
-    useEffect(()=>{
-        if(receipt?.status == "success"){
+    const { data: userANCBalance, refetch: refetchANCBalance } = useReadContract({
+        ...AmmContractConfig,
+        functionName: "balanceOf",
+        args: [
+            // @ts-ignore
+            address
+        ],
+        query: {
+            enabled: address != undefined
+        }
+    })
+
+    const { data: userEthBalance, refetch: refetchEthBalance } = useReadContract({
+        ...EthContractConfig,
+        functionName: "balanceOf",
+        args: [
+            // @ts-ignore
+            address
+        ],
+        query: {
+            enabled: address != undefined
+        }
+    })
+
+    const { data: userUsdcBalance, refetch: refetchUsdcBalance } = useReadContract({
+        ...UsdcContractConfig,
+        functionName: "balanceOf",
+        args: [
+            // @ts-ignore
+            address
+        ],
+        query: {
+            enabled: address != undefined
+        }
+    })
+
+    useEffect(() => {
+        if (receipt?.status == "success") {
             alert(currentTransaction)
             setProccessing(false)
             setCurrentTransaction("")
             refetchEthAllowance();
             refetchUsdcAllowance();
+            // Refetch balances after successful transaction
+            poolRef.current?.refetchPoolSupply();
+            refetchEthBalance();
+            refetchUsdcBalance();
+            refetchANCBalance();
         }
-        else if(receipt?.status == 'reverted'){
+        else if (receipt?.status == 'reverted') {
             alert(currentTransaction)
             setCurrentTransaction("")
             setProccessing(false)
         }
-    },[receipt])
+    }, [receipt])
 
     function ButtonHandler() {
         if (!isProcessing) {
@@ -135,10 +194,11 @@ export default function StakeMoney() {
                         import.meta.env.VITE_AMM_ADDRESS,
                         parseEther(Number(ethAmount).toString())
                     ]
-                },{ onError: (e: any) => {
-                    setCurrentTransaction("")
-                    alert("You cancelled the transaction")
-                }
+                }, {
+                    onError: () => {
+                        setCurrentTransaction("")
+                        alert("You cancelled the transaction")
+                    }
                 })
             }
             // @ts-ignore
@@ -154,7 +214,7 @@ export default function StakeMoney() {
                         parseEther(Number(usdcAmount).toString())
                     ]
                 }, {
-                    onError: (e: any) => {
+                    onError: () => {
                         setCurrentTransaction("")
                         alert("You cancelled the transaction")
                     }
@@ -171,7 +231,7 @@ export default function StakeMoney() {
                         0n
                     ]
                 }, {
-                    onError: (e: any) => {
+                    onError: () => {
                         alert("You cancelled the transaction")
                         setCurrentTransaction("")
                     }
@@ -183,6 +243,12 @@ export default function StakeMoney() {
     const getButtonText = () => {
         if (!isConnected) return "Connect Wallet";
         if (!ethAmount || !usdcAmount) return "Enter amount"
+        if (userEthBalance && Number(ethAmount) > Number(formatEther(userEthBalance as bigint))) {
+            return "Insufficient ETH Balance";
+        }
+        if (userUsdcBalance && Number(usdcAmount) > Number(formatEther(userUsdcBalance as bigint))) {
+            return "Insufficient USDC Balance";
+        }
         // @ts-ignore
         if (formatEther(userEthAllowance) < Number(ethAmount)) return "Approve Eth"
         // @ts-ignore
@@ -190,11 +256,70 @@ export default function StakeMoney() {
         return "Stake Tokens"
     }
 
+    return (
+        <div className="flex flex-col gap-4 text-black w-full max-w-4xl mx-auto">
+            <PoolSupply ref={poolRef} />
+            {/* --- NEW: Wallet Balances Section --- */}
+            {isConnected && (
+                <div className="grid grid-cols-3 gap-4 mb-2">
+                    <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 text-center">
+                        <p className="text-sm text-gray-500 font-semibold mb-1">ETH Balance</p>
+                        <p className="text-lg font-bold text-blue-800 break-all">
+                            {userEthBalance ? parseFloat(formatEther(userEthBalance as bigint)).toFixed(4) : "0"}
+                        </p>
+                    </div>
+                    <div className="bg-green-50 p-4 rounded-lg border border-green-100 text-center">
+                        <p className="text-sm text-gray-500 font-semibold mb-1">USDC Balance</p>
+                        <p className="text-lg font-bold text-green-800 break-all">
+                            {userUsdcBalance ? parseFloat(formatEther(userUsdcBalance as bigint)).toFixed(2) : "0"}
+                        </p>
+                    </div>
+                    <div className="bg-purple-50 p-4 rounded-lg border border-purple-100 text-center">
+                        <p className="text-sm text-gray-500 font-semibold mb-1">ANC Balance</p>
+                        <p className="text-lg font-bold text-purple-800 break-all">
+                            {userANCBalance ? parseFloat(formatEther(userANCBalance as bigint)).toFixed(4) : "0"}
+                        </p>
+                    </div>
+                </div>
+            )}
+            {/* ------------------------------------- */}
 
+            <div className="flex gap-4">
+                <input
+                    type="number"
+                    value={ethAmount}
+                    onChange={ethHandler}
+                    className="w-full p-2 border rounded"
+                    placeholder="Enter ETH Amount"
+                />
+                <input
+                    type="number"
+                    ref={usdcInputRef}
+                    value={usdcAmount}
+                    onChange={usdcHandler}
+                    className="w-full p-2 border rounded"
+                    placeholder="Enter USDC Amount"
+                />
+                <button
+                    disabled={getButtonText() !== "Stake Tokens" && getButtonText() !== "Approve Eth" && getButtonText() !== "Approve USDC"}
+                    onClick={ButtonHandler}
+                    className="bg-black text-white p-2 rounded-lg whitespace-nowrap min-w-[120px] hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    {getButtonText()}
+                </button>
+            </div>
 
-    return <div className="text-black flex gap-4">
-        <input type="number" value={ethAmount} onChange={ethHandler} className="w-full" placeholder="Enter the amount of the ETH" />
-        <input type="number" ref={usdcInputRef} value={usdcAmount} onChange={usdcHandler} placeholder="Enter the amount of the USDC" />
-        <button disabled={getButtonText() !== "Stake Tokens" && getButtonText() !== "Approve Eth" && getButtonText() !== "Approve USDC"} onClick={ButtonHandler} className="bg-white p-2 rounded-lg">{getButtonText()}</button>
-    </div>
-}
+            {/* Display Expected Shares */}
+            {ethAmount && usdcAmount && (
+                <div className="p-4 bg-gray-100 rounded-lg border border-gray-200">
+                    <div className="flex justify-between items-center">
+                        <p className="text-sm text-gray-600">Expected LP Tokens (ANC) to receive:</p>
+                        <p className="text-xl font-bold text-indigo-600">
+                            {expectedShares ? formatEther(expectedShares as bigint) : "0"} ANC
+                        </p>
+                    </div>
+                </div>
+            )}
+        </div>
+    )
+}           
