@@ -34,7 +34,7 @@ function MainContent() {
       </div>
 
       {/* Navbar */}
-      <nav className="relative z-50 flex items-center justify-between px-6 py-4 border-b border-gray-800/50 backdrop-blur-sm">
+      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 border-b border-gray-800/50 backdrop-blur-sm bg-[#0d0d0d]/80">
         <div className="flex items-center gap-8">
           {/* Logo */}
           <div className="flex items-center gap-2">
@@ -127,10 +127,10 @@ function MainContent() {
       </div>
 
       {/* Main Content */}
-      <main className="relative z-10 flex flex-col items-center px-4 pt-8 pb-20">
+      <main className="relative z-10 flex flex-col items-center px-4 pt-24 pb-20">
         {/* Hero Text */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4">
+          <h1 className="text-4xl mt-6 md:text-5xl lg:text-6xl font-bold text-white mb-4">
             {activeTab === "swap" && "Swap anytime, anywhere."}
             {activeTab === "liquidity" && "Provide Liquidity."}
             {activeTab === "remove" && "Withdraw Liquidity."}
@@ -147,6 +147,28 @@ function MainContent() {
           {activeTab === "swap" && <TransferTokens />}
           {activeTab === "liquidity" && <StakeMoney />}
           {activeTab === "remove" && <RemoveLiquidity />}
+        </div>
+
+        {/* Airdrop Hint Notification */}
+        <div className="mt-8 flex flex-col items-center animate-bounce">
+          <div className="bg-[#0d0d0d] border border-pink-500/30 rounded-xl px-5 py-3 backdrop-blur-sm shadow-lg shadow-pink-500/10">
+            <div className="flex items-center gap-3 text-gray-300">
+              <span className="text-sm font-medium">🎁 Want free tokens? Scroll down for Airdrop!</span>
+              <svg 
+                className="w-5 h-5 text-pink-400" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth={2} 
+                  d="M19 14l-7 7m0 0l-7-7m7 7V3" 
+                />
+              </svg>
+            </div>
+          </div>
         </div>
 
         {/* Airdrop Section */}
