@@ -7,7 +7,7 @@ export interface PoolSupplyHandle {
     refetchPoolSupply: () => void;
 }
 
-const PoolSupply = forwardRef<PoolSupplyHandle, {}>((props, ref) => {
+const PoolSupply = forwardRef<PoolSupplyHandle, {}>(({}, ref) => {
     const [ethSupply, setEthSupply] = useState(0);
     const [usdcSupply, setUsdcSupply] = useState(0);
 

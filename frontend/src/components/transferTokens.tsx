@@ -15,7 +15,7 @@ export default function TransferTokens() {
 
     const { data: hash, writeContract, isPending: isWritePending } = useWriteContract();
     
-    const { data:receipt , isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
+    const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
         hash,
     });
 

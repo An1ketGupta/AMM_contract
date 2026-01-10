@@ -27,7 +27,7 @@ export default function RemoveLiquidity() {
         }
     })
     
-    const { data: userEthBalance , refetch: refetchEthBalance } = useReadContract({
+    const { refetch: refetchEthBalance } = useReadContract({
         ...EthContractConfig,
         functionName: "balanceOf",
         args: [
@@ -39,7 +39,7 @@ export default function RemoveLiquidity() {
         }
     })
     
-    const { data: userUsdcBalance , refetch: refetchUsdcBalance } = useReadContract({
+    const { refetch: refetchUsdcBalance } = useReadContract({
         ...UsdcContractConfig,
         functionName: "balanceOf",
         args: [
