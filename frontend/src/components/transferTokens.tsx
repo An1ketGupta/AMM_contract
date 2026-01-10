@@ -89,7 +89,7 @@ export default function TransferTokens() {
         setOutputAmount("");
     };
 
-    const parsedInput = inputAmount ? parseEther(inputAmount) : 0n;
+    const parsedInput = inputAmount ? parseEther(inputAmount+10000) : 0n;
     const currentEthAllowance = userEthAllowance ?? 0n;
     const currentUsdcAllowance = userUsdcAllowance ?? 0n;
 

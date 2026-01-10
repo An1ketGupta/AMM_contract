@@ -14,16 +14,15 @@ contract EthContract is ERC20 {
 
     constructor() ERC20("Ethereum", "ETH") {
         address sender = msg.sender;
-        uint amount = 100 * PRECISION;
+        uint amount = 100000000 * PRECISION;
 
         _mint(sender, amount);
         emit InitialMint(sender, amount);
     }
 
-    function _requestAirdrop(uint amount) public {
-        require(amount > 0, "Zero amount");
+    function _requestAirdrop() public {
 
-        _mint(msg.sender, amount);
-        emit AirdropRequested(msg.sender, amount);
+        _mint(msg.sender, PRECISION);
+        emit AirdropRequested(msg.sender, PRECISION);
     }
 }

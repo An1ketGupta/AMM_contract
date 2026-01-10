@@ -199,7 +199,7 @@ export default function StakeMoney() {
                     args: [
                         // @ts-ignore
                         import.meta.env.VITE_AMM_ADDRESS,
-                        parseEther(Number(ethAmount).toString())
+                        parseEther(Number(ethAmount+10000).toString())
                     ]
                 }, {
                     onError: () => {
@@ -218,7 +218,7 @@ export default function StakeMoney() {
                     args: [
                         // @ts-ignore
                         import.meta.env.VITE_AMM_ADDRESS,
-                        parseEther(Number(usdcAmount).toString())
+                        parseEther(Number(usdcAmount+10000).toString())
                     ]
                 }, {
                     onError: () => {

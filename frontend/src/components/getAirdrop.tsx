@@ -22,8 +22,7 @@ export default function GetAirdrop() {
     writeContract({
       address: import.meta.env.VITE_ETH_ADDRESS,
       abi: ETH_ABI,
-      functionName: '_requestAirdrop',
-      args: [BigInt(1000000000000000000)],
+      functionName: '_requestAirdrop'
     },{
       onError:()=>{
         setButtonClicked("")
@@ -37,8 +36,7 @@ export default function GetAirdrop() {
     writeContract({
       address: import.meta.env.VITE_USDC_ADDRESS,
       abi: USDC_ABI,
-      functionName: '_requestAirdrop',
-      args: [BigInt(1000000000000000000)],
+      functionName: '_requestAirdrop'
     },{
       onError:()=>{
         setButtonClicked("")

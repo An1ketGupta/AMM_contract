@@ -1,14 +1,19 @@
 // SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.13;
-import { Script }from "../lib/forge-std/src/Script.sol";
-import "../lib/forge-std/src/console.sol";
+
+// I'm using the standard import path. 
+// If this fails, revert to your original: "../lib/forge-std/src/Script.sol"
+import { Script } from "forge-std/Script.sol";
+import "forge-std/console.sol";
+
 import "../src/AMM.sol";
 import "../src/EthToken.sol";
 import "../src/USDCToken.sol";
 
-contract Deploy is Script{
-    function run() external{
-        uint deployerPrivateKey = 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80;
+contract DeploySepolia is Script {
+    function run() external {
+        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
+
         vm.startBroadcast(deployerPrivateKey);
 
         EthContract eth = new EthContract();
@@ -18,9 +23,9 @@ contract Deploy is Script{
             address(eth),
             address(usdc)
         );
-
         vm.stopBroadcast();
 
+        console.log("SEPOLIA DEPLOYMENT SUCCESSFUL");
         console.log("VITE_ETH_ADDRESS=", address(eth));
         console.log("VITE_USDC_ADDRESS=", address(usdc));
         console.log("VITE_AMM_ADDRESS=", address(amm));

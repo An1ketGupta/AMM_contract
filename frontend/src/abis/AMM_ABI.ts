@@ -1,4 +1,4 @@
-export const AMM_ABI = [
+export const AMM_ABI =  [
         {
             "type": "constructor",
             "inputs": [

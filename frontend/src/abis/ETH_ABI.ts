@@ -7,13 +7,7 @@ export const ETH_ABI = [
         {
             "type": "function",
             "name": "_requestAirdrop",
-            "inputs": [
-                {
-                    "name": "amount",
-                    "type": "uint256",
-                    "internalType": "uint256"
-                }
-            ],
+            "inputs": [],
             "outputs": [],
             "stateMutability": "nonpayable"
         },
