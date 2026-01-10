@@ -91,7 +91,7 @@ function MainContent() {
       </nav>
 
       {/* Mobile Tab Selector */}
-      <div className="md:hidden flex justify-center mt-4 px-4">
+      <div className="md:hidden flex justify-center pt-20 px-4">
         <div className="flex items-center gap-1 bg-gray-900/50 p-1 rounded-2xl border border-gray-800/50 w-full max-w-sm">
           <button
             onClick={() => setActiveTab("swap")}
@@ -127,7 +127,7 @@ function MainContent() {
       </div>
 
       {/* Main Content */}
-      <main className="relative z-10 flex flex-col items-center px-4 pt-24 pb-20">
+      <main className="relative z-10 flex flex-col items-center px-4 pt-4 md:pt-24 pb-20">
         {/* Hero Text */}
         <div className="text-center mb-8">
           <h1 className="text-4xl mt-6 md:text-5xl lg:text-6xl font-bold text-white mb-4">
