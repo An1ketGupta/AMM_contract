@@ -6,6 +6,7 @@ import { EthContractConfig } from "../configs/EthContractConfig";
 import { UsdcContractConfig } from "../configs/USDCContractConfig";
 import type { PoolSupplyHandle } from "./poolSupply";
 import PoolSupply from "./poolSupply";
+import { useToast } from "./Toast";
 
 export default function StakeMoney() {
     const [ethAmount, setEthAmount] = useState<string>("")
@@ -20,6 +21,7 @@ export default function StakeMoney() {
     const { data: receipt } = useWaitForTransactionReceipt({
         hash
     })
+    const toast = useToast();
 
 
     useEffect(() => {
@@ -161,7 +163,12 @@ export default function StakeMoney() {
 
     useEffect(() => {
         if (receipt?.status == "success") {
-            alert(currentTransaction)
+            const messages: Record<string, string> = {
+                "ethapprove": "ETH approved successfully!",
+                "usdcapprove": "USDC approved successfully!",
+                "stake": "Successfully added liquidity!"
+            };
+            toast.success(messages[currentTransaction] || "Transaction successful!")
             setProccessing(false)
             setCurrentTransaction("")
             refetchEthAllowance();
@@ -173,7 +180,7 @@ export default function StakeMoney() {
             refetchANCBalance();
         }
         else if (receipt?.status == 'reverted') {
-            alert(currentTransaction)
+            toast.error("Transaction failed")
             setCurrentTransaction("")
             setProccessing(false)
         }
@@ -197,7 +204,7 @@ export default function StakeMoney() {
                 }, {
                     onError: () => {
                         setCurrentTransaction("")
-                        alert("You cancelled the transaction")
+                        toast.warning("Transaction cancelled")
                     }
                 })
             }
@@ -216,7 +223,7 @@ export default function StakeMoney() {
                 }, {
                     onError: () => {
                         setCurrentTransaction("")
-                        alert("You cancelled the transaction")
+                        toast.warning("Transaction cancelled")
                     }
                 })
             }
@@ -232,7 +239,7 @@ export default function StakeMoney() {
                     ]
                 }, {
                     onError: () => {
-                        alert("You cancelled the transaction")
+                        toast.warning("Transaction cancelled")
                         setCurrentTransaction("")
                     }
                 })
@@ -257,69 +264,142 @@ export default function StakeMoney() {
     }
 
     return (
-        <div className="flex flex-col gap-4 text-black w-full max-w-4xl mx-auto">
-            <PoolSupply ref={poolRef} />
-            {/* --- NEW: Wallet Balances Section --- */}
-            {isConnected && (
-                <div className="grid grid-cols-3 gap-4 mb-2">
-                    <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 text-center">
-                        <p className="text-sm text-gray-500 font-semibold mb-1">ETH Balance</p>
-                        <p className="text-lg font-bold text-blue-800 break-all">
-                            {userEthBalance ? parseFloat(formatEther(userEthBalance as bigint)).toFixed(4) : "0"}
-                        </p>
+        <div className="w-full max-w-md mx-auto">
+            {/* Protocol Stats Header */}
+            <div className="mb-4">
+                <PoolSupply ref={poolRef} />
+            </div>
+
+            {/* Main Card */}
+            <div className="bg-gray-900/80 backdrop-blur-xl rounded-3xl p-4 border border-gray-800/50 shadow-2xl">
+                {/* Card Header */}
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-semibold text-white">Add Liquidity</h2>
+                    {isConnected && (
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-400 bg-purple-500/10 px-2 py-1 rounded-full border border-purple-500/20">
+                                ANC: {userANCBalance ? parseFloat(formatEther(userANCBalance as bigint)).toFixed(4) : "0"}
+                            </span>
+                        </div>
+                    )}
+                </div>
+
+                {/* ETH Input Block */}
+                <div className="bg-gray-800/50 rounded-2xl p-4 border border-gray-700/50 hover:border-gray-600/50 transition-colors">
+                    <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm text-gray-400">You deposit</span>
+                        {isConnected && (
+                            <button 
+                                onClick={() => {
+                                    if (userEthBalance) {
+                                        const balance = formatEther(userEthBalance as bigint);
+                                        setEthAmount(balance);
+                                        setActiveTab("eth");
+                                    }
+                                }}
+                                className="text-xs text-gray-500 hover:text-white transition-colors"
+                            >
+                                Balance: {userEthBalance ? parseFloat(formatEther(userEthBalance as bigint)).toFixed(4) : "0"}
+                            </button>
+                        )}
                     </div>
-                    <div className="bg-green-50 p-4 rounded-lg border border-green-100 text-center">
-                        <p className="text-sm text-gray-500 font-semibold mb-1">USDC Balance</p>
-                        <p className="text-lg font-bold text-green-800 break-all">
-                            {userUsdcBalance ? parseFloat(formatEther(userUsdcBalance as bigint)).toFixed(2) : "0"}
-                        </p>
-                    </div>
-                    <div className="bg-purple-50 p-4 rounded-lg border border-purple-100 text-center">
-                        <p className="text-sm text-gray-500 font-semibold mb-1">ANC Balance</p>
-                        <p className="text-lg font-bold text-purple-800 break-all">
-                            {userANCBalance ? parseFloat(formatEther(userANCBalance as bigint)).toFixed(4) : "0"}
-                        </p>
+                    <div className="flex items-center justify-between gap-4">
+                        <input
+                            type="number"
+                            value={ethAmount}
+                            onChange={ethHandler}
+                            className="w-full bg-transparent text-3xl font-medium text-white outline-none placeholder-gray-600"
+                            placeholder="0"
+                        />
+                        <div className="flex items-center gap-2 px-3 py-2 rounded-2xl bg-gray-700/80">
+                            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
+                                <span className="text-white text-xs font-bold">Ξ</span>
+                            </div>
+                            <span className="font-semibold text-white">ETH</span>
+                        </div>
                     </div>
                 </div>
-            )}
-            {/* ------------------------------------- */}
 
-            <div className="flex gap-4">
-                <input
-                    type="number"
-                    value={ethAmount}
-                    onChange={ethHandler}
-                    className="w-full p-2 border rounded"
-                    placeholder="Enter ETH Amount"
-                />
-                <input
-                    type="number"
-                    ref={usdcInputRef}
-                    value={usdcAmount}
-                    onChange={usdcHandler}
-                    className="w-full p-2 border rounded"
-                    placeholder="Enter USDC Amount"
-                />
+                {/* Plus Divider */}
+                <div className="flex justify-center -my-1 relative z-10">
+                    <div className="bg-gray-800 border-4 border-gray-900 rounded-xl p-1">
+                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v12m6-6H6" />
+                        </svg>
+                    </div>
+                </div>
+
+                {/* USDC Input Block */}
+                <div className="bg-gray-800/50 rounded-2xl p-4 border border-gray-700/50 hover:border-gray-600/50 transition-colors mt-1">
+                    <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm text-gray-400">You deposit</span>
+                        {isConnected && (
+                            <button 
+                                onClick={() => {
+                                    if (userUsdcBalance && usdcInputRef.current && !usdcInputRef.current.disabled) {
+                                        const balance = formatEther(userUsdcBalance as bigint);
+                                        setUsdcAmount(balance);
+                                        setActiveTab("usdc");
+                                    }
+                                }}
+                                className="text-xs text-gray-500 hover:text-white transition-colors"
+                            >
+                                Balance: {userUsdcBalance ? parseFloat(formatEther(userUsdcBalance as bigint)).toFixed(2) : "0"}
+                            </button>
+                        )}
+                    </div>
+                    <div className="flex items-center justify-between gap-4">
+                        <input
+                            type="number"
+                            ref={usdcInputRef}
+                            value={usdcAmount}
+                            onChange={usdcHandler}
+                            className="w-full bg-transparent text-3xl font-medium text-white outline-none placeholder-gray-600 disabled:text-gray-500"
+                            placeholder="0"
+                        />
+                        <div className="flex items-center gap-2 px-3 py-2 rounded-2xl bg-gray-700/80">
+                            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                                <span className="text-white text-xs font-bold">$</span>
+                            </div>
+                            <span className="font-semibold text-white">USDC</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Expected Shares Info */}
+                {ethAmount && usdcAmount && (
+                    <div className="mt-4 p-3 bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-xl border border-purple-500/20">
+                        <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-400">You will receive</span>
+                            <div className="flex items-center gap-2">
+                                <span className="text-xl font-bold text-purple-400">
+                                    {expectedShares ? parseFloat(formatEther(expectedShares as bigint)).toFixed(6) : "0"}
+                                </span>
+                                <span className="text-sm font-medium text-purple-300">ANC</span>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Action Button */}
                 <button
                     disabled={getButtonText() !== "Stake Tokens" && getButtonText() !== "Approve Eth" && getButtonText() !== "Approve USDC"}
                     onClick={ButtonHandler}
-                    className="bg-black text-white p-2 rounded-lg whitespace-nowrap min-w-[120px] hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className={`w-full mt-4 py-4 rounded-2xl font-semibold text-lg transition-all duration-200 ${
+                        getButtonText() === "Connect Wallet"
+                            ? "bg-gray-800 text-gray-500 cursor-not-allowed"
+                            : getButtonText() === "Enter amount"
+                            ? "bg-gray-800 text-gray-500 cursor-not-allowed"
+                            : getButtonText().includes("Insufficient")
+                            ? "bg-red-500/20 text-red-400 cursor-not-allowed border border-red-500/30"
+                            : getButtonText().startsWith("Approve")
+                            ? "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg shadow-blue-500/20"
+                            : "bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-lg shadow-pink-500/20"
+                    } disabled:opacity-60 disabled:cursor-not-allowed disabled:shadow-none`}
                 >
-                    {getButtonText()}
+                    {isProcessing ? "Processing..." : getButtonText()}
                 </button>
             </div>
-
-            {/* Display Expected Shares */}
-            {ethAmount && usdcAmount && (
-                <div className="p-4 bg-gray-100 rounded-lg border border-gray-200">
-                    <div className="flex justify-between items-center">
-                        <p className="text-sm text-gray-600">Expected LP Tokens (ANC) to receive:</p>
-                        <p className="text-xl font-bold text-indigo-600">
-                            {expectedShares ? formatEther(expectedShares as bigint) : "0"} ANC
-                        </p>
-                    </div>
-                </div>
-            )}
         </div>
     )
 }           
